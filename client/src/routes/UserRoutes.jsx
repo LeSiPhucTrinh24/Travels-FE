@@ -8,6 +8,7 @@ import TourDetail from '@/pages/user/TourDetail';
 import About from '@/pages/user/About';
 import Contact from '@/pages/user/Contact';
 import Login from '@/pages/user/Login';
+import Register from '@/pages/user/Register';
 import NotFound from '@/pages/not-found';
 
 export default function UserRoutes() {
@@ -20,6 +21,7 @@ export default function UserRoutes() {
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

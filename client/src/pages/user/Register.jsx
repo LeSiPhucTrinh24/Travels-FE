@@ -1,323 +1,227 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { FcGoogle } from 'react-icons/fc';
+import mockAuth from '@/lib/firebase';
 
 const Register = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phone: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: null
-      }));
-    }
   };
-  
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Họ tên không được để trống';
-    }
-    
-    if (!formData.email) {
-      newErrors.email = 'Email không được để trống';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
-    }
-    
-    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
-      newErrors.phone = 'Số điện thoại không hợp lệ';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Mật khẩu không được để trống';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-    
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     
-    if (!validateForm()) return;
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.');
+      return;
+    }
     
     setIsLoading(true);
-    
+
     try {
-      // Simulate registration API call
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Register with:', formData);
+      
+      // In a real app, this would call an API to create a user
+      console.log('Registration data:', formData);
       
       // Redirect to login page after successful registration
-      navigate('/login', { state: { message: 'Đăng ký thành công! Vui lòng đăng nhập.' } });
+      navigate('/login');
     } catch (error) {
-      console.error('Registration failed:', error);
-      setErrors({
-        general: 'Đăng ký thất bại. Vui lòng thử lại sau.'
-      });
+      console.error('Registration error:', error);
+      setError('Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.');
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleGoogleRegister = () => {
-    console.log('Register with Google');
-    // Implement Google registration
+
+  const handleGoogleRegister = async () => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Using our mock Firebase auth for demo
+      // In a real implementation, we would use the actual Firebase auth
+      const result = await mockAuth.signInWithGoogle();
+      
+      if (result && result.user) {
+        console.log('Google registration successful:', result.user);
+        navigate('/');
+      } else {
+        throw new Error('Registration failed');
+      }
+    } catch (error) {
+      console.error('Google registration error:', error);
+      setError('Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại sau.');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
+
   return (
-    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-sm">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Đăng ký tài khoản</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Hoặc{' '}
-            <Link to="/login" className="font-medium text-primary hover:text-primary/80">
-              đăng nhập nếu đã có tài khoản
-            </Link>
+    <div className="max-w-md mx-auto my-12 px-4">
+      <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold mb-2">Đăng ký tài khoản</h1>
+          <p className="text-gray-600">
+            Tạo tài khoản để nhận các ưu đãi đặc biệt
           </p>
         </div>
-        
-        {errors.general && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center text-sm">
-            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-            <span>{errors.general}</span>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
           </div>
         )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Họ tên
+                Họ và tên
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.name ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="Họ tên của bạn"
-                />
-              </div>
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Nguyễn Văn A"
+              />
             </div>
-            
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="Email của bạn"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="example@gmail.com"
+              />
             </div>
-            
+
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Số điện thoại <span className="text-gray-500">(không bắt buộc)</span>
+                Số điện thoại
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.phone ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="Số điện thoại của bạn"
-                />
-              </div>
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-              )}
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="0912345678"
+              />
             </div>
-            
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Mật khẩu
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="Mật khẩu của bạn"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
+                minLength={6}
+              />
             </div>
-            
+
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 Xác nhận mật khẩu
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`pl-10 ${errors.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="Xác nhận mật khẩu"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Nhập lại mật khẩu"
+                minLength={6}
+              />
             </div>
-          </div>
-          
-          <div className="flex items-start">
-            <input
-              id="terms"
-              name="terms"
-              type="checkbox"
-              className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1"
-            />
-            <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-              Tôi đồng ý với{' '}
-              <a href="#" className="text-primary hover:text-primary/80">
-                Điều khoản sử dụng
-              </a>{' '}
-              và{' '}
-              <a href="#" className="text-primary hover:text-primary/80">
-                Chính sách bảo mật
-              </a>
-            </label>
-          </div>
-          
-          <div>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
+
+            <div className="flex items-start">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                required
+                className="h-4 w-4 mt-1 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
+                Tôi đồng ý với <a href="#" className="text-primary hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-primary hover:underline">Chính sách bảo mật</a>
+              </label>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
             </Button>
           </div>
         </form>
-        
+
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Hoặc đăng ký với</span>
+              <span className="px-2 bg-white text-gray-500">
+                hoặc đăng ký với
+              </span>
             </div>
           </div>
-          
+
           <div className="mt-6">
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
               onClick={handleGoogleRegister}
-              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              disabled={isLoading}
             >
-              <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-                  <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/>
-                  <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/>
-                  <path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/>
-                  <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/>
-                </g>
-              </svg>
+              <FcGoogle className="h-5 w-5 mr-2" />
               Google
-            </button>
+            </Button>
           </div>
         </div>
+
+        <p className="text-center mt-8 text-gray-600 text-sm">
+          Đã có tài khoản?{' '}
+          <Link to="/login" className="text-primary hover:underline font-medium">
+            Đăng nhập
+          </Link>
+        </p>
       </div>
     </div>
   );
