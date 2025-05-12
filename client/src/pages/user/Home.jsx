@@ -1,201 +1,336 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import TourCard from '@/components/common/TourCard';
-import SearchForm from '@/components/common/SearchForm';
+import { ArrowRight, Search, Calendar, Users, MapPin, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckCircle, 
-  MapPin, 
-  Clock, 
-  Shield, 
-  Award, 
-  Users,
-  ArrowRight,
-  LucideArrowRight,
-  Star,
-  ChevronRight
-} from 'lucide-react';
-
+import { Input } from '@/components/ui/input';
 import { sampleTours, initializeTourWithImage } from '@/lib/mockData';
+
+// Format currency
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0
+  }).format(value);
+};
+
+// Feature component
+const Feature = ({ icon: Icon, title, description }) => (
+  <div className="flex flex-col items-center text-center">
+    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+      <Icon className="h-8 w-8 text-primary" />
+    </div>
+    <h3 className="text-xl font-bold mb-2">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
+
+// Tour card component
+const TourCard = ({ tour }) => (
+  <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <Link to={`/tours/${tour.id}`} className="block">
+      <div className="h-52 overflow-hidden relative">
+        <img 
+          src={tour.imageUrl} 
+          alt={tour.name}
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+        />
+        {tour.featured && (
+          <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
+            Nổi bật
+          </div>
+        )}
+      </div>
+    </Link>
+    
+    <div className="p-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="font-bold text-lg">
+            <Link to={`/tours/${tour.id}`} className="hover:text-primary transition-colors">
+              {tour.name}
+            </Link>
+          </h3>
+          <div className="flex items-center mt-1 text-gray-500 text-sm">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span>{tour.location}</span>
+          </div>
+        </div>
+        <div className="flex items-center">
+          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
+          <span className="font-semibold">4.8</span>
+        </div>
+      </div>
+      
+      <p className="mt-3 text-gray-600 text-sm line-clamp-2">
+        {tour.description}
+      </p>
+      
+      <div className="mt-4 flex items-center justify-between">
+        <div>
+          <span className="font-bold text-lg text-primary">{formatCurrency(tour.price)}</span>
+          <span className="text-gray-500 text-sm">/người</span>
+        </div>
+        <div className="text-gray-500 text-sm">
+          {tour.duration}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Destination card component
+const DestinationCard = ({ name, imageUrl, tourCount }) => (
+  <div className="relative group overflow-hidden rounded-lg">
+    <img 
+      src={imageUrl} 
+      alt={name}
+      className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
+    />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
+      <div className="absolute bottom-4 left-4 text-white">
+        <h3 className="text-xl font-bold">{name}</h3>
+        <p className="text-sm">{tourCount} tour</p>
+      </div>
+    </div>
+  </div>
+);
+
+// Testimonial component
+const Testimonial = ({ name, role, quote, avatar }) => (
+  <div className="bg-white rounded-lg p-6 shadow-sm">
+    <div className="flex items-center mb-4">
+      <img src={avatar} alt={name} className="w-12 h-12 rounded-full mr-4" />
+      <div>
+        <h4 className="font-bold">{name}</h4>
+        <p className="text-gray-500 text-sm">{role}</p>
+      </div>
+    </div>
+    <p className="text-gray-700 italic">{quote}</p>
+    <div className="mt-4 flex">
+      {[...Array(5)].map((_, i) => (
+        <Star key={i} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+      ))}
+    </div>
+  </div>
+);
 
 const Home = () => {
   const [featuredTours, setFeaturedTours] = useState([]);
-  
-  // Simulating API call with React Query
-  const { 
-    data: tours = [], 
-    isLoading
-  } = useQuery({
-    queryKey: ['/api/tours/featured'],
-    queryFn: () => Promise.resolve(
-      sampleTours.map(tour => initializeTourWithImage({
-        ...tour, 
-        id: Math.floor(Math.random() * 10000), // Random ID for demo purposes
-        rating: (4 + Math.random()).toFixed(1) // Random rating between 4.0-5.0
-      }))
-    ),
-    staleTime: Infinity,
-  });
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [destination, setDestination] = useState('');
+  const [date, setDate] = useState('');
+  const [travelers, setTravelers] = useState('');
+
   useEffect(() => {
-    if (tours.length > 0) {
-      setFeaturedTours(tours.filter(tour => tour.featured).slice(0, 6));
-    }
-  }, [tours]);
-  
-  // Testimonials data
+    // Simulating API call to get featured tours
+    const loadFeaturedTours = async () => {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      
+      // Get up to 6 featured tours
+      const tours = sampleTours
+        .filter(tour => tour.featured)
+        .slice(0, 6)
+        .map(tour => initializeTourWithImage(tour));
+      
+      setFeaturedTours(tours);
+      setIsLoading(false);
+    };
+    
+    loadFeaturedTours();
+  }, []);
+
+  // Sample destination data
+  const destinations = [
+    { name: 'Hạ Long', imageUrl: 'https://images.unsplash.com/photo-1573270689103-d7a4e42b609a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600', tourCount: 24 },
+    { name: 'Đà Nẵng', imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600', tourCount: 18 },
+    { name: 'Phú Quốc', imageUrl: 'https://images.unsplash.com/photo-1540202404-1b927e27fa8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600', tourCount: 12 },
+    { name: 'Đà Lạt', imageUrl: 'https://images.unsplash.com/photo-1559347309-c412cdcb7d4c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600', tourCount: 15 }
+  ];
+
+  // Sample testimonials
   const testimonials = [
     {
-      id: 1,
       name: 'Nguyễn Văn A',
-      location: 'Hà Nội',
-      image: 'https://randomuser.me/api/portraits/men/32.jpg',
-      rating: 5,
-      text: 'Chuyến du lịch tuyệt vời! Hướng dẫn viên rất thân thiện và chuyên nghiệp. Tôi sẽ tiếp tục sử dụng dịch vụ của TravelNow trong tương lai.',
+      role: 'Khách hàng thân thiết',
+      quote: 'Dịch vụ tuyệt vời! Đã trải nghiệm nhiều tour du lịch qua TravelNow và chưa bao giờ thất vọng. Hướng dẫn viên chuyên nghiệp và thân thiện.',
+      avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
     },
     {
-      id: 2,
       name: 'Trần Thị B',
-      location: 'TP.HCM',
-      image: 'https://randomuser.me/api/portraits/women/44.jpg',
-      rating: 4,
-      text: 'Dịch vụ rất tốt, lịch trình hợp lý. Tuy nhiên, khách sạn có thể tốt hơn một chút. Nhìn chung tôi vẫn rất hài lòng với chuyến đi.',
+      role: 'Nhà văn du lịch',
+      quote: 'Chuyến đi Hạ Long thật khó quên. Đặc biệt ấn tượng với dịch vụ trên tàu và món ăn đậm đà hương vị Việt Nam. Chắc chắn sẽ quay lại!',
+      avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
     },
     {
-      id: 3,
       name: 'Lê Văn C',
-      location: 'Đà Nẵng',
-      image: 'https://randomuser.me/api/portraits/men/62.jpg',
-      rating: 5,
-      text: 'Đây là lần thứ ba tôi đặt tour qua TravelNow và chưa bao giờ thất vọng. Chất lượng dịch vụ luôn ổn định và đáng tin cậy.',
-    },
-  ];
-  
-  // Features data
-  const features = [
-    {
-      icon: <Shield className="h-10 w-10 text-primary" />,
-      title: 'An toàn & Đáng tin cậy',
-      description: 'Sự an toàn của khách hàng luôn là ưu tiên hàng đầu của chúng tôi với đội ngũ hướng dẫn viên chuyên nghiệp.'
-    },
-    {
-      icon: <Award className="h-10 w-10 text-primary" />,
-      title: 'Trải nghiệm chất lượng cao',
-      description: 'Chúng tôi cam kết mang đến những trải nghiệm du lịch tốt nhất với dịch vụ chất lượng cao.'
-    },
-    {
-      icon: <Clock className="h-10 w-10 text-primary" />,
-      title: 'Lịch trình linh hoạt',
-      description: 'Các tour của chúng tôi có lịch trình linh hoạt, phù hợp với nhu cầu và thời gian của khách hàng.'
-    },
-    {
-      icon: <Users className="h-10 w-10 text-primary" />,
-      title: 'Hỗ trợ 24/7',
-      description: 'Đội ngũ hỗ trợ khách hàng của chúng tôi luôn sẵn sàng giúp đỡ bạn 24/7, bất kể bạn đang ở đâu.'
+      role: 'Blogger',
+      quote: 'Giá cả phải chăng cho một trải nghiệm tuyệt vời. Các tour được thiết kế rất chu đáo, đi đúng lịch trình mà không vội vàng.',
+      avatar: 'https://randomuser.me/api/portraits/men/62.jpg'
     }
   ];
-  
-  // Destinations data
-  const destinations = [
-    {
-      name: 'Vịnh Hạ Long',
-      image: 'https://images.unsplash.com/photo-1528127269322-539801943592?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300',
-      tours: 12
-    },
-    {
-      name: 'Hội An',
-      image: 'https://images.unsplash.com/photo-1540998871672-38471ce50502?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300',
-      tours: 10
-    },
-    {
-      name: 'Sapa',
-      image: 'https://images.unsplash.com/photo-1577440708692-ab186b6bb00a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300',
-      tours: 8
-    },
-    {
-      name: 'Đà Lạt',
-      image: 'https://images.unsplash.com/photo-1559897492-51850c164217?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300',
-      tours: 15
-    }
-  ];
-  
+
+  // Handle search form
+  const handleSearch = (e) => {
+    e.preventDefault();
+    console.log('Search for:', { destination, date, travelers });
+    // Redirect to tours page with search params
+  };
+
   return (
     <div>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary to-secondary text-white pb-16 pt-12">
-        <div className="container-custom">
-          <div className="max-w-3xl mx-auto text-center mb-10">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-              Khám phá Việt Nam cùng TravelNow
+      {/* Hero section */}
+      <div className="bg-gradient-to-r from-primary to-secondary text-white relative">
+        <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+              Khám phá Việt Nam cùng chúng tôi
             </h1>
-            <p className="text-lg md:text-xl mb-8">
+            <p className="text-xl md:text-2xl mb-8">
               Đặt tour du lịch dễ dàng với giá tốt nhất và dịch vụ chất lượng cao
             </p>
-          </div>
-          
-          {/* Search Form */}
-          <div className="relative z-10 -mb-24">
-            <SearchForm variant="hero" />
+            <div className="flex flex-wrap gap-4">
+              <Button asChild size="lg">
+                <Link to="/tours">
+                  Xem tất cả tour
+                </Link>
+              </Button>
+              <Button variant="outline" className="bg-white/20" size="lg">
+                Liên hệ ngay
+              </Button>
+            </div>
           </div>
         </div>
-      </section>
-      
-      {/* Features Section */}
-      <section className="mt-32 mb-20 py-10">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-3xl font-bold mb-4">Tại sao chọn TravelNow?</h2>
-            <p className="text-gray-600">
-              Chúng tôi cung cấp trải nghiệm du lịch hoàn hảo với dịch vụ chất lượng cao và giá cả hợp lý
+      </div>
+
+      {/* Search section */}
+      <div className="container mx-auto px-4 relative -mt-8 md:-mt-10">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+                Điểm đến
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                </div>
+                <Input
+                  id="destination"
+                  type="text"
+                  placeholder="Bạn muốn đi đâu?"
+                  className="pl-10"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                Ngày đi
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar className="h-5 w-5 text-gray-400" />
+                </div>
+                <Input
+                  id="date"
+                  type="date"
+                  className="pl-10"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="travelers" className="block text-sm font-medium text-gray-700 mb-1">
+                Số người
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Users className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  id="travelers"
+                  className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={travelers}
+                  onChange={(e) => setTravelers(e.target.value)}
+                >
+                  <option value="">Số người</option>
+                  <option value="1">1 người</option>
+                  <option value="2">2 người</option>
+                  <option value="3">3 người</option>
+                  <option value="4">4 người</option>
+                  <option value="5">5 người</option>
+                  <option value="6+">6+ người</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex items-end">
+              <Button type="submit" className="w-full">
+                <Search className="h-4 w-4 mr-2" />
+                Tìm kiếm
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Features section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Tại sao chọn chúng tôi?</h2>
+            <p className="text-gray-600 max-w-3xl mx-auto">
+              Chúng tôi cam kết mang đến những trải nghiệm du lịch tuyệt vời nhất với dịch vụ chất lượng cao và giá cả hợp lý
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="p-6 border rounded-lg hover:shadow-md transition-shadow">
-                <div className="mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            ))}
+            <Feature 
+              icon={Calendar}
+              title="Tour đa dạng"
+              description="Hàng trăm tour du lịch đa dạng phù hợp với mọi nhu cầu và ngân sách của bạn"
+            />
+            <Feature 
+              icon={Star}
+              title="Dịch vụ chất lượng"
+              description="Cam kết chất lượng dịch vụ tốt nhất từ khâu tư vấn đến kết thúc hành trình"
+            />
+            <Feature 
+              icon={MapPin}
+              title="Điểm đến hấp dẫn"
+              description="Khám phá những điểm đến nổi tiếng và cả những địa điểm ít người biết đến"
+            />
+            <Feature 
+              icon={Users}
+              title="Hướng dẫn viên chuyên nghiệp"
+              description="Đội ngũ hướng dẫn viên giàu kinh nghiệm, thân thiện và am hiểu văn hóa địa phương"
+            />
           </div>
         </div>
       </section>
-      
-      {/* Featured Tours Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <div className="flex flex-wrap items-center justify-between mb-10">
+
+      {/* Featured tours section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-2">Tour nổi bật</h2>
-              <p className="text-gray-600">Khám phá những tour du lịch được yêu thích nhất</p>
+              <h2 className="text-3xl font-bold">Tour nổi bật</h2>
+              <p className="text-gray-600 mt-2">Khám phá những tour du lịch được yêu thích nhất</p>
             </div>
-            <Link to="/tours">
-              <Button variant="outline" className="mt-4 md:mt-0">
-                Xem tất cả
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <Link to="/tours" className="text-primary hover:underline flex items-center">
+              Xem tất cả
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
           
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg h-[350px] animate-pulse">
-                  <div className="h-48 bg-gray-200 rounded-t-lg"></div>
-                  <div className="p-4">
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
-                    <div className="flex justify-between mt-4">
-                      <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-                      <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -206,108 +341,71 @@ const Home = () => {
           )}
         </div>
       </section>
-      
-      {/* Popular Destinations */}
-      <section className="py-16">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-12">
+
+      {/* Popular destinations */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Điểm đến phổ biến</h2>
-            <p className="text-gray-600">
-              Khám phá những điểm đến nổi tiếng và hấp dẫn nhất tại Việt Nam
+            <p className="text-gray-600 max-w-3xl mx-auto">
+              Khám phá những điểm đến du lịch hàng đầu tại Việt Nam
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {destinations.map((destination, index) => (
-              <div 
-                key={index} 
-                className="group relative rounded-lg overflow-hidden h-60"
-              >
-                <img 
-                  src={destination.image} 
-                  alt={destination.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            {destinations.map((destination) => (
+              <Link to={`/tours?destination=${destination.name}`} key={destination.name}>
+                <DestinationCard 
+                  name={destination.name}
+                  imageUrl={destination.imageUrl}
+                  tourCount={destination.tourCount}
                 />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300"></div>
-                <div className="absolute inset-0 flex flex-col justify-end p-4">
-                  <h3 className="text-white text-xl font-bold mb-1">
-                    {destination.name}
-                  </h3>
-                  <div className="flex items-center text-white text-sm">
-                    <span>{destination.tours} tours</span>
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </div>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
-      
+
       {/* Testimonials */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-3xl font-bold mb-4">Đánh giá từ khách hàng</h2>
-            <p className="text-gray-600">
-              Xem những gì khách hàng nói về trải nghiệm du lịch cùng chúng tôi
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Khách hàng nói gì về chúng tôi</h2>
+            <p className="text-gray-600 max-w-3xl mx-auto">
+              Những đánh giá từ khách hàng đã trải nghiệm dịch vụ của chúng tôi
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="bg-white rounded-lg p-6 shadow-sm">
-                <div className="flex items-center space-x-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-4 w-4 ${i < testimonial.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
-                    />
-                  ))}
-                </div>
-                <p className="mb-6 text-gray-600 italic">"{testimonial.text}"</p>
-                <div className="flex items-center">
-                  <img 
-                    src={testimonial.image} 
-                    alt={testimonial.name}
-                    className="h-12 w-12 rounded-full mr-4 object-cover"
-                  />
-                  <div>
-                    <h4 className="font-bold">{testimonial.name}</h4>
-                    <div className="text-sm text-gray-500 flex items-center">
-                      <MapPin className="h-3.5 w-3.5 mr-1" />
-                      {testimonial.location}
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <Testimonial 
+                key={index}
+                name={testimonial.name}
+                role={testimonial.role}
+                quote={testimonial.quote}
+                avatar={testimonial.avatar}
+              />
             ))}
           </div>
         </div>
       </section>
-      
-      {/* CTA Section */}
-      <section className="py-16 bg-primary text-white">
-        <div className="container-custom">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-6">
-              Sẵn sàng cho chuyến phiêu lưu tiếp theo?
-            </h2>
-            <p className="text-lg mb-8">
-              Đặt tour ngay hôm nay và nhận ưu đãi đặc biệt!
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/tours">
-                <Button className="text-primary bg-white hover:bg-gray-100 hover:text-primary">
-                  Khám phá các tour
-                </Button>
-              </Link>
-              <Link to="/contact">
-                <Button variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-                  Liên hệ với chúng tôi
-                </Button>
-              </Link>
-            </div>
+
+      {/* CTA section */}
+      <section className="py-16 bg-gradient-to-r from-primary to-secondary text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">Bạn đã sẵn sàng cho chuyến đi tiếp theo?</h2>
+          <p className="text-xl mb-8 max-w-3xl mx-auto">
+            Đăng ký ngay hôm nay để nhận thông tin về những ưu đãi độc quyền và tour du lịch mới nhất
+          </p>
+          <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-4">
+            <Input 
+              type="email" 
+              placeholder="Nhập email của bạn" 
+              className="bg-white/20 border-white/40 text-white placeholder:text-white/70"
+            />
+            <Button className="bg-white text-primary hover:bg-white/90">
+              Đăng ký
+            </Button>
           </div>
         </div>
       </section>

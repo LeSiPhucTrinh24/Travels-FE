@@ -1,152 +1,118 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
 import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Users, MapPin, Search } from 'lucide-react';
+  Search, 
+  MapPin, 
+  Calendar, 
+  Users 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-const destinations = [
-  { value: "all", label: "Tất cả điểm đến" },
-  { value: "halong", label: "Hạ Long" },
-  { value: "hoian", label: "Hội An" },
-  { value: "sapa", label: "Sapa" },
-  { value: "dalat", label: "Đà Lạt" },
-  { value: "phuquoc", label: "Phú Quốc" },
-  { value: "nhatrang", label: "Nha Trang" },
+// Mock destination options
+const destinationOptions = [
+  { id: 'halong', name: 'Hạ Long' },
+  { id: 'danang', name: 'Đà Nẵng' },
+  { id: 'hoian', name: 'Hội An' },
+  { id: 'sapa', name: 'Sapa' },
+  { id: 'dalat', name: 'Đà Lạt' },
+  { id: 'phuquoc', name: 'Phú Quốc' },
+  { id: 'nhatrang', name: 'Nha Trang' },
 ];
 
-const travelers = [
-  { value: "1", label: "1 người" },
-  { value: "2", label: "2 người" },
-  { value: "3", label: "3 người" },
-  { value: "4", label: "4 người" },
-  { value: "5", label: "5 người" },
-  { value: "6", label: "6+ người" },
-];
-
-const SearchForm = ({ variant = "default", onSearch }) => {
+const SearchForm = ({ className }) => {
   const navigate = useNavigate();
-  const [destination, setDestination] = useState("all");
-  const [date, setDate] = useState(null);
-  const [numTravelers, setNumTravelers] = useState("2");
+  const [destination, setDestination] = useState('');
+  const [date, setDate] = useState('');
+  const [guests, setGuests] = useState('');
   
-  // Form styling based on variant
-  const isHero = variant === "hero";
-  const formClass = isHero 
-    ? "bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4"
-    : "bg-white rounded-lg shadow p-4 grid grid-cols-1 md:grid-cols-4 gap-3";
-  
-  const handleSearch = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
-    const searchParams = {
-      destination,
-      date: date ? format(date, 'yyyy-MM-dd') : '',
-      travelers: numTravelers
-    };
+    // Build query params
+    const queryParams = new URLSearchParams();
+    if (destination) queryParams.set('destination', destination);
+    if (date) queryParams.set('date', date);
+    if (guests) queryParams.set('guests', guests);
     
-    if (onSearch) {
-      onSearch(searchParams);
-    } else {
-      // Navigate to search results page with query params
-      const queryString = new URLSearchParams(searchParams).toString();
-      navigate(`/tours?${queryString}`);
-    }
+    // Navigate to tours page with search params
+    navigate({
+      pathname: '/tours',
+      search: queryParams.toString()
+    });
   };
   
   return (
-    <form onSubmit={handleSearch} className={formClass}>
-      <div className="space-y-2">
-        <Label htmlFor="destination">Điểm đến</Label>
-        <Select value={destination} onValueChange={setDestination}>
-          <SelectTrigger id="destination" className="w-full">
-            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Chọn điểm đến" />
-          </SelectTrigger>
-          <SelectContent>
-            {destinations.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="date">Ngày đi</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-left font-normal"
-              id="date"
+    <form 
+      onSubmit={handleSubmit}
+      className={`${className || ''}`}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Điểm đến</label>
+          <div className="relative">
+            <select
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="w-full pl-10 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
-              <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-              {date ? (
-                format(date, 'dd/MM/yyyy')
-              ) : (
-                <span className="text-muted-foreground">Chọn ngày</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-              locale={vi}
-              disabled={(date) => date < new Date()}
+              <option value="">Chọn điểm đến</option>
+              {destinationOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MapPin className="h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ngày đi</label>
+          <div className="relative">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full pl-10 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-          </PopoverContent>
-        </Popover>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="travelers">Số người</Label>
-        <Select value={numTravelers} onValueChange={setNumTravelers}>
-          <SelectTrigger id="travelers" className="w-full">
-            <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Số người" />
-          </SelectTrigger>
-          <SelectContent>
-            {travelers.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className={`space-y-2 ${isHero ? 'md:self-end' : ''}`}>
-        <Label htmlFor="search-btn" className={isHero ? 'md:hidden' : ''}>
-          Tìm kiếm
-        </Label>
-        <Button 
-          type="submit" 
-          className="w-full"
-          id="search-btn"
-        >
-          <Search className="h-4 w-4 mr-2" />
-          Tìm kiếm
-        </Button>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Calendar className="h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Số người</label>
+          <div className="relative">
+            <select
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+              className="w-full pl-10 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="">Chọn số người</option>
+              <option value="1">1 người</option>
+              <option value="2">2 người</option>
+              <option value="3">3 người</option>
+              <option value="4">4 người</option>
+              <option value="5">5 người</option>
+              <option value="6+">6+ người</option>
+            </select>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Users className="h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-end">
+          <Button type="submit" className="w-full">
+            <Search className="h-4 w-4 mr-2" />
+            Tìm kiếm
+          </Button>
+        </div>
       </div>
     </form>
   );

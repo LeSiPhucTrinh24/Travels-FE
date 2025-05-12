@@ -1,214 +1,223 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  Menu, 
-  X,
-  ChevronDown, 
-  LogOut,
-  User,
-  Home,
-  Map,
-  Users,
-  FileText,
-  Calendar,
-  BarChart3,
+  Home, 
+  Map, 
+  Users, 
+  Calendar, 
+  MessageSquare, 
+  BarChart2, 
   Settings,
-  Mail,
-  Bell
+  Menu,
+  X,
+  ChevronDown,
+  LogOut,
+  Bell,
+  User
 } from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
-const Sidebar = ({ isOpen, closeSidebar }) => {
+const AdminLayout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const location = useLocation();
+  
+  // Nav items
+  const navItems = [
+    { path: '/admin', icon: <Home className="h-5 w-5" />, label: 'Tổng quan' },
+    { path: '/admin/tours', icon: <Map className="h-5 w-5" />, label: 'Quản lý Tour' },
+    { path: '/admin/bookings', icon: <Calendar className="h-5 w-5" />, label: 'Đặt tour' },
+    { path: '/admin/users', icon: <Users className="h-5 w-5" />, label: 'Người dùng' },
+    { path: '/admin/reviews', icon: <MessageSquare className="h-5 w-5" />, label: 'Đánh giá' },
+    { path: '/admin/reports', icon: <BarChart2 className="h-5 w-5" />, label: 'Báo cáo' },
+    { path: '/admin/settings', icon: <Settings className="h-5 w-5" />, label: 'Cài đặt' },
+  ];
   
   // Check if a path is active
   const isActive = (path) => {
-    return location.pathname === path;
+    if (path === '/admin' && location.pathname === '/admin') return true;
+    if (path !== '/admin' && location.pathname.startsWith(path)) return true;
+    return false;
   };
   
-  const menuItems = [
-    { icon: <Home className="h-5 w-5" />, label: 'Tổng quan', path: '/admin' },
-    { icon: <Map className="h-5 w-5" />, label: 'Quản lý Tour', path: '/admin/tours' },
-    { icon: <Users className="h-5 w-5" />, label: 'Quản lý người dùng', path: '/admin/users' },
-    { icon: <Calendar className="h-5 w-5" />, label: 'Quản lý đặt tour', path: '/admin/bookings' },
-    { icon: <FileText className="h-5 w-5" />, label: 'Quản lý đánh giá', path: '/admin/reviews' },
-    { icon: <BarChart3 className="h-5 w-5" />, label: 'Báo cáo thống kê', path: '/admin/reports' },
-    { icon: <Settings className="h-5 w-5" />, label: 'Cài đặt', path: '/admin/settings' },
+  // Sample notifications
+  const notifications = [
+    { id: 1, title: 'Đặt tour mới', message: 'Nguyễn Văn A đã đặt tour Vịnh Hạ Long', time: '5 phút trước' },
+    { id: 2, title: 'Đánh giá mới', message: 'Đánh giá mới từ Trần Thị B cần được duyệt', time: '30 phút trước' },
+    { id: 3, title: 'Thanh toán thành công', message: 'Đơn hàng #123 đã thanh toán thành công', time: '1 giờ trước' },
   ];
   
   return (
-    <>
-      {/* Mobile backdrop */}
-      {isOpen && (
+    <div className="min-h-screen bg-gray-100">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={closeSidebar}
-        />
+          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
       )}
       
       {/* Sidebar */}
-      <div className={`
-        fixed top-0 left-0 h-full z-50 bg-gray-900 text-white w-64 transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
+      <aside 
+        className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-md transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         {/* Sidebar header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        <div className="flex items-center justify-between h-16 px-6 border-b">
           <Link to="/admin" className="flex items-center">
-            <span className="text-xl font-bold">Admin<span className="text-primary">Panel</span></span>
+            <span className="text-xl font-semibold text-primary">
+              <span className="text-secondary">Travel</span>Now
+            </span>
           </Link>
           <button 
-            className="md:hidden text-gray-400 hover:text-white"
-            onClick={closeSidebar}
+            className="p-1 text-gray-500 rounded-md lg:hidden"
+            onClick={() => setSidebarOpen(false)}
           >
             <X className="h-6 w-6" />
           </button>
         </div>
         
         {/* Sidebar content */}
-        <div className="py-4">
-          <div className="px-4 mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-white font-medium">A</span>
-              </div>
-              <div>
-                <div className="font-medium">Admin</div>
-                <div className="text-xs text-gray-400">admin@travelnow.com</div>
-              </div>
-            </div>
-          </div>
-          
-          <ul className="space-y-1">
-            {menuItems.map((item, index) => (
-              <li key={index}>
-                <Link
-                  to={item.path}
-                  className={`
-                    flex items-center px-4 py-3 text-sm hover:bg-gray-800
-                    ${isActive(item.path) ? 'bg-gray-800 border-l-4 border-primary pl-3' : ''}
-                  `}
-                >
-                  <span className="mr-3 text-gray-400">{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              </li>
+        <div className="px-3 py-4">
+          <nav className="space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center px-3 py-2.5 rounded-md ${
+                  isActive(item.path)
+                    ? 'bg-primary text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <span className="mr-3">{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
             ))}
-          </ul>
+          </nav>
         </div>
         
         {/* Sidebar footer */}
-        <div className="absolute bottom-0 w-full p-4 border-t border-gray-800">
-          <Link to="/" className="flex items-center text-sm text-gray-400 hover:text-white">
-            <span className="mr-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-            </span>
-            <span>Quay về trang chủ</span>
+        <div className="absolute bottom-0 w-full p-4 border-t space-y-2">
+          <div className="flex items-center px-3 py-3 rounded-md bg-gray-50">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                <User className="h-6 w-6 text-gray-600" />
+              </div>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">Admin Name</p>
+              <p className="text-xs text-gray-500">admin@travelnow.com</p>
+            </div>
+          </div>
+          <Link 
+            to="/"
+            className="flex items-center justify-center px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 w-full"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            <span>Đăng xuất</span>
           </Link>
         </div>
-      </div>
-    </>
-  );
-};
-
-const AdminLayout = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  const openSidebar = () => setIsSidebarOpen(true);
-  const closeSidebar = () => setIsSidebarOpen(false);
-  
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
+      </aside>
       
       {/* Main content */}
-      <div className="md:ml-64 flex flex-col min-h-screen">
+      <div className="lg:pl-64">
         {/* Header */}
-        <header className="bg-white shadow-sm z-10">
-          <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+        <header className="bg-white shadow-sm h-16 flex items-center z-10 sticky top-0">
+          <div className="container mx-auto px-6 flex items-center justify-between">
             {/* Mobile menu button */}
             <button 
-              className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              onClick={openSidebar}
+              className="p-1 text-gray-500 rounded-md lg:hidden"
+              onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </button>
             
-            {/* Search */}
-            <div className="max-w-lg w-full hidden md:block">
-              <Input 
-                type="text" 
-                placeholder="Tìm kiếm..." 
-                className="w-full"
-              />
-            </div>
-            
-            {/* Header right */}
-            <div className="flex items-center space-x-4">
-              <button className="p-1 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 relative">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-              </button>
-              
-              <button className="p-1 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                <Mail className="h-6 w-6" />
-              </button>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                      <span className="text-white font-medium">A</span>
+            <div className="flex items-center ml-auto space-x-4">
+              {/* Notifications */}
+              <div className="relative">
+                <button 
+                  className="p-2 text-gray-500 hover:text-primary rounded-full hover:bg-gray-100 relative"
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                >
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                
+                {/* Notifications dropdown */}
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-20 border">
+                    <div className="px-4 py-2 border-b">
+                      <h3 className="text-sm font-semibold">Thông báo</h3>
                     </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Hồ sơ cá nhân</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Cài đặt</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <Link to="/">
-                    <DropdownMenuItem>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Đăng xuất</span>
-                    </DropdownMenuItem>
-                  </Link>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <div className="max-h-64 overflow-y-auto">
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id} 
+                          className="px-4 py-3 hover:bg-gray-50 border-b last:border-0"
+                        >
+                          <p className="text-sm font-medium">{notification.title}</p>
+                          <p className="text-xs text-gray-500 mb-1">{notification.message}</p>
+                          <p className="text-xs text-gray-400">{notification.time}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-4 py-2 border-t text-center">
+                      <Link to="/admin/notifications" className="text-xs text-primary font-medium">
+                        Xem tất cả thông báo
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* User menu */}
+              <div className="relative">
+                <button 
+                  className="flex items-center space-x-2 text-gray-700 hover:text-primary"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                    <User className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <span className="hidden md:block font-medium text-sm">Admin</span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                
+                {/* User dropdown menu */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border">
+                    <Link 
+                      to="/admin/profile" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Thông tin tài khoản
+                    </Link>
+                    <Link 
+                      to="/admin/settings" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Cài đặt
+                    </Link>
+                    <div className="border-t my-1"></div>
+                    <Link 
+                      to="/" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Đăng xuất
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
         
         {/* Page content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+        <main className="container mx-auto px-6 py-6">
           {children}
         </main>
-        
-        {/* Footer */}
-        <footer className="px-4 sm:px-6 lg:px-8 py-4 border-t">
-          <div className="text-center text-sm text-gray-500">
-            &copy; 2025 TravelNow Admin Panel. Bản quyền thuộc về TravelNow.
-          </div>
-        </footer>
       </div>
     </div>
   );

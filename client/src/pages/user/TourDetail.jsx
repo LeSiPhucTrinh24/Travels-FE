@@ -1,194 +1,185 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { 
+  Star, 
+  Clock, 
   MapPin, 
   Calendar, 
-  Clock, 
   Users, 
-  Check, 
-  X, 
-  Star, 
-  ChevronRight,
-  ArrowLeft
+  Heart, 
+  Share2, 
+  CheckCircle,
+  X,
+  Info,
+  Image
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { sampleTours, initializeTourWithImage, guideImages } from '@/lib/mockData';
-import TourCard from '@/components/common/TourCard';
+import { Input } from '@/components/ui/input';
+import { sampleTours, initializeTourWithImage } from '@/lib/mockData';
 
-// Format price with thousand separators
-const formatPrice = (price) => {
+// Format currency
+const formatCurrency = (value) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0
-  }).format(price);
+  }).format(value);
 };
 
 const TourDetail = () => {
   const { id } = useParams();
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [travelerCount, setTravelerCount] = useState(2);
+  const [tour, setTour] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [numTravelers, setNumTravelers] = useState(1);
+  const [showBookingSuccess, setShowBookingSuccess] = useState(false);
   
-  // Query for the specific tour
-  const { 
-    data: tour, 
-    isLoading, 
-    isError 
-  } = useQuery({
-    queryKey: [`/api/tours/${id}`],
-    queryFn: () => {
-      // Find the tour in sample data
-      const foundTour = sampleTours.find(tour => tour.id === parseInt(id));
-      if (!foundTour) {
-        // If no tour found with the ID, use the first one as a fallback for demo
-        const fallbackTour = sampleTours[0];
-        return Promise.resolve(initializeTourWithImage({
-          ...fallbackTour,
-          id: parseInt(id) || 1,
-          rating: 4.8,
-          reviewCount: 24
-        }));
-      }
-      
-      return Promise.resolve(initializeTourWithImage({
-        ...foundTour,
-        rating: 4.8,
-        reviewCount: 24
-      }));
-    },
-    staleTime: Infinity,
-  });
+  // Mock additional image data
+  const additionalImages = [
+    'https://images.unsplash.com/photo-1528127269322-539801943592?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600',
+    'https://images.unsplash.com/photo-1540998871672-38471ce50502?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600',
+    'https://images.unsplash.com/photo-1582650406001-2a25e70c6f0f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600',
+    'https://images.unsplash.com/photo-1577440708692-ab186b6bb00a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600',
+  ];
   
-  // Query for related tours
-  const { data: relatedTours = [] } = useQuery({
-    queryKey: ['/api/tours/related'],
-    queryFn: () => {
-      return Promise.resolve(sampleTours.slice(0, 3).map(tour => initializeTourWithImage({
-        ...tour,
-        id: Math.floor(Math.random() * 10000),
-        rating: (4 + Math.random()).toFixed(1)
-      })));
-    },
-    staleTime: Infinity,
-  });
-  
-  // Tour schedule data
-  const schedule = [
+  // Mock testimonials
+  const reviews = [
     {
-      day: 'Ngày 1',
-      title: 'Khởi hành và khám phá',
+      id: 1,
+      name: 'Nguyễn Văn A',
+      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      comment: 'Chuyến đi tuyệt vời! Hướng dẫn viên rất thân thiện và chuyên nghiệp. Cảnh đẹp, ăn ngon, khách sạn sạch sẽ. Tôi sẽ tiếp tục đặt tour tại đây trong tương lai.',
+      rating: 5,
+      date: '2025-04-15'
+    },
+    {
+      id: 2,
+      name: 'Trần Thị B',
+      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+      comment: 'Dịch vụ rất tốt, lịch trình hợp lý. Tuy nhiên, khách sạn có thể tốt hơn một chút. Nhìn chung tôi vẫn rất hài lòng với chuyến đi.',
+      rating: 4,
+      date: '2025-04-10'
+    },
+    {
+      id: 3,
+      name: 'Lê Văn C',
+      avatar: 'https://randomuser.me/api/portraits/men/62.jpg',
+      comment: 'Đây là lần thứ ba tôi đặt tour qua đây và chưa bao giờ thất vọng. Chất lượng dịch vụ luôn ổn định và đáng tin cậy.',
+      rating: 5,
+      date: '2025-04-05'
+    },
+  ];
+  
+  // Mock itinerary
+  const itinerary = [
+    {
+      day: 1,
+      title: 'Khởi hành - Khám phá Vịnh Hạ Long',
       activities: [
-        'Đón khách tại điểm hẹn',
-        'Di chuyển đến điểm đến',
-        'Check-in khách sạn',
-        'Tham quan địa điểm nổi tiếng đầu tiên',
-        'Ăn tối và nghỉ ngơi'
+        '7:00 - 8:00: Đón khách tại khách sạn ở Hà Nội',
+        '8:00 - 12:00: Di chuyển đến Vịnh Hạ Long',
+        '12:00 - 13:30: Nhận phòng và dùng bữa trưa trên tàu',
+        '14:00 - 17:00: Khám phá hang Sửng Sốt, đảo Ti Tốp',
+        '18:00 - 19:30: Ăn tối trên tàu',
+        '20:00 - 22:00: Tự do câu mực đêm hoặc nghỉ ngơi'
       ]
     },
     {
-      day: 'Ngày 2',
-      title: 'Trải nghiệm văn hóa địa phương',
+      day: 2,
+      title: 'Khám phá Vịnh Lan Hạ - Trở về Hà Nội',
       activities: [
-        'Ăn sáng tại khách sạn',
-        'Tham quan làng nghề truyền thống',
-        'Trải nghiệm ẩm thực địa phương',
-        'Khám phá các địa điểm du lịch nổi tiếng',
-        'Ăn tối và xem biểu diễn văn hóa'
-      ]
-    },
-    {
-      day: 'Ngày 3',
-      title: 'Khám phá thiên nhiên',
-      activities: [
-        'Ăn sáng tại khách sạn',
-        'Tham quan danh lam thắng cảnh',
-        'Picnic trưa tại địa điểm du lịch',
-        'Tự do khám phá và mua sắm',
-        'Ăn tối tại nhà hàng nổi tiếng'
+        '6:00 - 7:30: Tập Tai Chi trên boong tàu và ăn sáng',
+        '8:00 - 9:30: Tham quan làng chài Cửa Vạn',
+        '10:00 - 11:00: Trả phòng và dùng bữa trưa',
+        '12:00 - 16:00: Di chuyển về Hà Nội',
+        '16:00 - 17:00: Kết thúc tour, đưa khách về khách sạn'
       ]
     }
   ];
   
-  // Included and excluded features
-  const included = [
-    'Hướng dẫn viên chuyên nghiệp',
-    'Xe đưa đón theo lịch trình',
-    'Khách sạn 3-4 sao',
-    'Bữa ăn theo chương trình',
-    'Vé tham quan các điểm du lịch',
-    'Bảo hiểm du lịch',
-    'Nước uống mỗi ngày'
-  ];
+  // Load tour data from mock data
+  useEffect(() => {
+    // Simulating API call
+    const loadData = async () => {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      
+      // Find tour in sample data
+      const tourData = sampleTours.find(
+        t => t.id === parseInt(id) || t.id === id
+      );
+      
+      if (tourData) {
+        // Initialize with image
+        setTour(initializeTourWithImage({
+          ...tourData,
+          rating: "4.8",
+          reviewCount: 24,
+          additionalImages,
+          reviews,
+          itinerary
+        }));
+      } else {
+        // Generate a random tour for demo
+        setTour(initializeTourWithImage({
+          id,
+          name: 'Vịnh Hạ Long 2 ngày 1 đêm',
+          location: 'Hạ Long, Quảng Ninh',
+          description: 'Khám phá vẻ đẹp huyền bí của Vịnh Hạ Long - Di sản thiên nhiên thế giới được UNESCO công nhận với hàng nghìn hòn đảo đá vôi, hang động kỳ thú và bãi biển hoang sơ. Tour bao gồm tàu thăm quan Vịnh, các bữa ăn, hướng dẫn viên và nhiều hoạt động thú vị.',
+          price: 1790000,
+          duration: '2 ngày 1 đêm',
+          featured: true,
+          rating: "4.8",
+          reviewCount: 24,
+          additionalImages,
+          reviews,
+          itinerary
+        }));
+      }
+      
+      setIsLoading(false);
+    };
+    
+    loadData();
+  }, [id]);
   
-  const excluded = [
-    'Chi phí cá nhân & giặt ủi',
-    'Đồ uống trong bữa ăn',
-    'Chi phí tham quan ngoài chương trình',
-    'Phụ thu phòng đơn',
-    'Tiền tip cho hướng dẫn viên và tài xế'
-  ];
-  
-  // Tour guide data
-  const guide = {
-    name: 'Nguyễn Hướng Dẫn Viên',
-    experience: '5 năm kinh nghiệm',
-    image: guideImages.guide1,
-    languages: ['Tiếng Việt', 'Tiếng Anh'],
-    rating: 4.9,
-    reviews: 86
+  const handleBookNow = () => {
+    console.log('Booking tour:', {
+      tourId: id,
+      selectedDate,
+      numTravelers
+    });
+    
+    setShowBookingSuccess(true);
+    
+    // Reset after 5 seconds
+    setTimeout(() => {
+      setShowBookingSuccess(false);
+    }, 5000);
   };
   
-  // Handle booking
-  const handleBooking = () => {
-    console.log('Booking tour with ID:', id);
-    alert('Chức năng đặt tour sẽ được triển khai trong phiên bản tiếp theo!');
-  };
-  
-  // Loading state
   if (isLoading) {
     return (
-      <div className="container-custom py-10">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-          <div className="h-80 bg-gray-200 rounded mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <div className="h-10 bg-gray-200 rounded w-3/4 mb-6"></div>
-              <div className="h-4 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded mb-8"></div>
-              <div className="h-40 bg-gray-200 rounded"></div>
-            </div>
-            <div>
-              <div className="h-80 bg-gray-200 rounded"></div>
-            </div>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
   
-  // Error state
-  if (isError || !tour) {
+  if (!tour) {
     return (
-      <div className="container-custom py-10">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold text-red-700 mb-4">
-            Không tìm thấy thông tin tour
-          </h2>
-          <p className="text-red-600 mb-6">
-            Rất tiếc, chúng tôi không thể tìm thấy thông tin tour bạn đang tìm kiếm.
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <div className="mb-4">
+            <Info className="h-16 w-16 text-gray-400 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Tour không tồn tại</h2>
+          <p className="text-gray-600 mb-6">
+            Tour bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.
           </p>
           <Link to="/tours">
-            <Button variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại danh sách tour
-            </Button>
+            <Button>Xem tất cả tour</Button>
           </Link>
         </div>
       </div>
@@ -197,439 +188,321 @@ const TourDetail = () => {
   
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="bg-gray-50 py-3 border-b">
-        <div className="container-custom">
-          <div className="flex items-center text-sm">
-            <Link to="/" className="text-gray-500 hover:text-primary">Trang chủ</Link>
-            <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />
-            <Link to="/tours" className="text-gray-500 hover:text-primary">Tour</Link>
-            <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />
-            <span className="text-gray-800 font-medium truncate">{tour.name}</span>
+      {/* Tour Header */}
+      <div className="bg-gradient-to-r from-primary to-secondary text-white py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{tour.name}</h1>
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-1" />
+                <span>{tour.location}</span>
+                <span className="mx-2">•</span>
+                <div className="flex items-center">
+                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
+                  <span>{tour.rating}</span>
+                  <span className="text-sm ml-1">({tour.reviewCount} đánh giá)</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 md:mt-0 flex space-x-2">
+              <Button variant="ghost" className="text-white border border-white hover:bg-white/20">
+                <Heart className="h-4 w-4 mr-2" />
+                <span>Lưu</span>
+              </Button>
+              <Button variant="ghost" className="text-white border border-white hover:bg-white/20">
+                <Share2 className="h-4 w-4 mr-2" />
+                <span>Chia sẻ</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
       
-      <div className="container-custom py-8">
-        {/* Tour header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-3">{tour.name}</h1>
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <div className="flex items-center text-gray-700">
-              <MapPin className="h-4 w-4 mr-1 text-primary" />
-              <span>{tour.location}</span>
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main tour content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Gallery */}
+            <div className="grid grid-cols-2 grid-rows-2 gap-4 h-[400px]">
+              <div className="col-span-1 row-span-2">
+                <img 
+                  src={tour.imageUrl} 
+                  alt={tour.name}
+                  className="w-full h-full object-cover rounded-l-lg"
+                />
+              </div>
+              <div className="col-span-1 row-span-1">
+                <img 
+                  src={tour.additionalImages[1]} 
+                  alt={`${tour.name} 2`}
+                  className="w-full h-full object-cover rounded-tr-lg"
+                />
+              </div>
+              <div className="col-span-1 row-span-1 relative group">
+                <img 
+                  src={tour.additionalImages[2]} 
+                  alt={`${tour.name} 3`}
+                  className="w-full h-full object-cover rounded-br-lg"
+                />
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-br-lg">
+                  <div className="text-white text-center">
+                    <Image className="h-6 w-6 mx-auto mb-1" />
+                    <span>Xem tất cả ảnh</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center text-gray-700">
-              <Clock className="h-4 w-4 mr-1 text-primary" />
-              <span>{tour.duration}</span>
+            
+            {/* Tour overview */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Tổng quan</h2>
+              <div className="bg-white rounded-lg shadow-sm p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <Clock className="h-6 w-6 text-primary mb-2" />
+                  <h3 className="text-sm font-semibold">Thời gian</h3>
+                  <p className="text-gray-600">{tour.duration}</p>
+                </div>
+                <div className="flex flex-col items-center justify-center text-center">
+                  <MapPin className="h-6 w-6 text-primary mb-2" />
+                  <h3 className="text-sm font-semibold">Điểm đến</h3>
+                  <p className="text-gray-600">{tour.location}</p>
+                </div>
+                <div className="flex flex-col items-center justify-center text-center">
+                  <Users className="h-6 w-6 text-primary mb-2" />
+                  <h3 className="text-sm font-semibold">Nhóm</h3>
+                  <p className="text-gray-600">10-20 người</p>
+                </div>
+                <div className="flex flex-col items-center justify-center text-center">
+                  <Calendar className="h-6 w-6 text-primary mb-2" />
+                  <h3 className="text-sm font-semibold">Khởi hành</h3>
+                  <p className="text-gray-600">Hàng ngày</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i} 
-                    className={`h-4 w-4 ${i < Math.floor(tour.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
-                  />
+            
+            {/* Tour description */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Mô tả</h2>
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <p className="text-gray-700 leading-relaxed">
+                  {tour.description}
+                </p>
+              </div>
+            </div>
+            
+            {/* Tour itinerary */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Lịch trình</h2>
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                {tour.itinerary.map((day) => (
+                  <div key={day.day} className="mb-6 last:mb-0">
+                    <h3 className="text-lg font-bold mb-3">Ngày {day.day}: {day.title}</h3>
+                    <ul className="space-y-2">
+                      {day.activities.map((activity, index) => (
+                        <li key={index} className="flex items-start">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs mr-3 mt-0.5">
+                            {index + 1}
+                          </div>
+                          <span className="text-gray-700">{activity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
               </div>
-              <span className="ml-2 text-gray-700">
-                {tour.rating} ({tour.reviewCount} đánh giá)
-              </span>
             </div>
-          </div>
-        </div>
-        
-        {/* Tour image */}
-        <div className="rounded-lg overflow-hidden mb-10 h-[500px]">
-          <img 
-            src={tour.imageUrl} 
-            alt={tour.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-        
-        {/* Main content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column: Tour details */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="overview">
-              <TabsList className="mb-6">
-                <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-                <TabsTrigger value="schedule">Lịch trình</TabsTrigger>
-                <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-              </TabsList>
-              
-              {/* Overview Tab */}
-              <TabsContent value="overview">
-                <div className="space-y-8">
-                  {/* Description */}
-                  <div>
-                    <h2 className="text-xl font-bold mb-4">Thông tin chuyến đi</h2>
-                    <p className="text-gray-700 mb-4">
-                      {tour.description}
-                    </p>
-                    <p className="text-gray-700">
-                      Đây là một trải nghiệm du lịch hoàn hảo, phù hợp với những người yêu thích khám phá văn hóa,
-                      thiên nhiên và ẩm thực địa phương. Bạn sẽ được tham quan các địa điểm nổi tiếng, thưởng thức 
-                      ẩm thực đặc sản và trải nghiệm các hoạt động thú vị trong suốt chuyến đi.
-                    </p>
-                  </div>
-                  
-                  {/* Highlights */}
-                  <div>
-                    <h2 className="text-xl font-bold mb-4">Điểm nhấn</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex text-primary mb-2">
-                          <MapPin className="h-5 w-5 mr-2" />
-                          <h3 className="font-bold">Địa điểm nổi tiếng</h3>
-                        </div>
-                        <p className="text-gray-700">
-                          Tham quan các địa điểm du lịch nổi tiếng và hấp dẫn nhất của vùng.
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex text-primary mb-2">
-                          <Users className="h-5 w-5 mr-2" />
-                          <h3 className="font-bold">Hướng dẫn viên chuyên nghiệp</h3>
-                        </div>
-                        <p className="text-gray-700">
-                          Được đồng hành bởi đội ngũ hướng dẫn viên giàu kinh nghiệm.
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex text-primary mb-2">
-                          <Calendar className="h-5 w-5 mr-2" />
-                          <h3 className="font-bold">Lịch trình linh hoạt</h3>
-                        </div>
-                        <p className="text-gray-700">
-                          Lịch trình được thiết kế hợp lý với thời gian tham quan và nghỉ ngơi.
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex text-primary mb-2">
-                          <Star className="h-5 w-5 mr-2" />
-                          <h3 className="font-bold">Trải nghiệm đặc sắc</h3>
-                        </div>
-                        <p className="text-gray-700">
-                          Tham gia các hoạt động văn hóa và trải nghiệm đặc biệt của địa phương.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Included/Excluded */}
-                  <div>
-                    <h2 className="text-xl font-bold mb-4">Dịch vụ bao gồm & không bao gồm</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="font-bold text-green-600 mb-3 flex items-center">
-                          <Check className="h-5 w-5 mr-2" />
-                          Bao gồm trong tour
-                        </h3>
-                        <ul className="space-y-2">
-                          {included.map((item, index) => (
-                            <li key={index} className="flex items-start">
-                              <Check className="h-4 w-4 text-green-500 mt-1 mr-2 flex-shrink-0" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 flex items-center">
-                          <X className="h-5 w-5 mr-2" />
-                          Không bao gồm
-                        </h3>
-                        <ul className="space-y-2">
-                          {excluded.map((item, index) => (
-                            <li key={index} className="flex items-start">
-                              <X className="h-4 w-4 text-red-500 mt-1 mr-2 flex-shrink-0" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Tour Guide */}
-                  <div>
-                    <h2 className="text-xl font-bold mb-4">Hướng dẫn viên</h2>
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <div className="flex items-center">
-                        <img 
-                          src={guide.image} 
-                          alt={guide.name}
-                          className="w-20 h-20 rounded-full object-cover mr-4"
-                        />
-                        <div>
-                          <h3 className="font-bold text-lg">{guide.name}</h3>
-                          <p className="text-gray-600 mb-1">{guide.experience}</p>
-                          <div className="flex items-center">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`h-4 w-4 ${i < Math.floor(guide.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
-                                />
-                              ))}
-                            </div>
-                            <span className="ml-2 text-sm text-gray-700">
-                              {guide.rating} ({guide.reviews} đánh giá)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        <div className="mb-2 text-sm font-medium">Ngôn ngữ:</div>
-                        <div className="flex flex-wrap gap-2">
-                          {guide.languages.map((language, index) => (
-                            <Badge key={index} variant="outline">
-                              {language}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            
+            {/* Reviews */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Đánh giá</h2>
+                <div className="flex items-center">
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 mr-1" />
+                  <span className="font-bold text-lg">{tour.rating}</span>
+                  <span className="text-gray-600 ml-1">({tour.reviewCount} đánh giá)</span>
                 </div>
-              </TabsContent>
+              </div>
               
-              {/* Schedule Tab */}
-              <TabsContent value="schedule">
-                <div>
-                  <h2 className="text-xl font-bold mb-4">Lịch trình chi tiết</h2>
-                  <div className="space-y-6">
-                    {schedule.map((day, index) => (
-                      <div key={index} className="relative">
-                        {/* Timeline connector */}
-                        {index < schedule.length - 1 && (
-                          <div className="absolute top-12 left-6 bottom-0 w-0.5 bg-gray-200"></div>
-                        )}
-                        
-                        <div className="flex">
-                          {/* Day indicator */}
-                          <div className="relative z-10">
-                            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center">
-                              <span className="text-sm font-bold">{index + 1}</span>
-                            </div>
-                          </div>
-                          
-                          {/* Day content */}
-                          <div className="ml-4 pb-6">
-                            <h3 className="font-bold text-lg">{day.day}: {day.title}</h3>
-                            <div className="mt-3 bg-gray-50 rounded-lg p-4">
-                              <ul className="space-y-3">
-                                {day.activities.map((activity, actIndex) => (
-                                  <li key={actIndex} className="flex items-center">
-                                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs mr-3">
-                                      {actIndex + 1}
-                                    </span>
-                                    <span>{activity}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
+              <div className="space-y-4">
+                {tour.reviews.map((review) => (
+                  <div key={review.id} className="bg-white rounded-lg shadow-sm p-4">
+                    <div className="flex items-start">
+                      <img 
+                        src={review.avatar} 
+                        alt={review.name}
+                        className="w-10 h-10 rounded-full mr-4"
+                      />
+                      <div className="flex-1">
+                        <div className="flex justify-between">
+                          <h3 className="font-bold">{review.name}</h3>
+                          <span className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString('vi-VN')}</span>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-              
-              {/* Reviews Tab */}
-              <TabsContent value="reviews">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">Đánh giá từ khách hàng</h2>
-                    <div className="flex items-center">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`h-5 w-5 ${i < Math.floor(tour.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-2 font-bold">
-                        {tour.rating}
-                      </span>
-                      <span className="ml-1 text-gray-600">
-                        ({tour.reviewCount} đánh giá)
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Review list - these are mock reviews */}
-                  <div className="space-y-6">
-                    {[...Array(3)].map((_, index) => (
-                      <div key={index} className="border-b pb-6 last:border-b-0">
-                        <div className="flex items-center mb-3">
-                          <img 
-                            src={`https://randomuser.me/api/portraits/${index % 2 === 0 ? 'men' : 'women'}/${20 + index}.jpg`} 
-                            alt="Reviewer"
-                            className="w-10 h-10 rounded-full mr-3"
-                          />
-                          <div>
-                            <h4 className="font-bold">Khách hàng {index + 1}</h4>
-                            <div className="text-sm text-gray-500">Đã đi tour vào tháng {5 - index}/2023</div>
-                          </div>
-                        </div>
-                        <div className="flex mb-3">
+                        <div className="flex mb-2">
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`h-4 w-4 ${i < 5 - index % 2 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
+                              className={`h-4 w-4 ${
+                                i < review.rating 
+                                  ? 'text-yellow-500 fill-yellow-500' 
+                                  : 'text-gray-300'
+                              }`} 
                             />
                           ))}
                         </div>
-                        <p className="text-gray-700">
-                          {index === 0 && "Tour rất tuyệt vời, hướng dẫn viên nhiệt tình và chuyên nghiệp. Cảnh đẹp, ăn ngon, khách sạn sạch sẽ. Tôi sẽ tiếp tục đặt tour tại đây."}
-                          {index === 1 && "Chuyến đi thú vị, mọi thứ đều tốt như mong đợi. Hướng dẫn viên rất am hiểu về lịch sử và văn hóa địa phương, giúp chúng tôi hiểu thêm về nơi mình đến."}
-                          {index === 2 && "Trải nghiệm đáng nhớ với phong cảnh tuyệt đẹp. Tuy nhiên, lịch trình hơi gấp rút, hy vọng có thêm thời gian tự do khám phá hơn. Nhìn chung, vẫn là một chuyến đi tốt."}
-                        </p>
+                        <p className="text-gray-700">{review.comment}</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-          
-          {/* Right column: Booking card */}
-          <div>
-            <div className="sticky top-20">
-              <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-                <div className="p-6 border-b">
-                  <div className="text-2xl font-bold text-primary mb-1">
-                    {formatPrice(tour.price)} 
-                    <span className="text-sm font-normal text-gray-600">/người</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 text-sm">
-                    <div className="flex items-center text-gray-700">
-                      <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                      <span>{tour.duration}</span>
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <div className="flex mt-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`h-3.5 w-3.5 ${i < Math.floor(tour.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-1 text-xs">
-                        ({tour.reviewCount})
-                      </span>
                     </div>
                   </div>
-                </div>
-                
-                <div className="p-6">
-                  <div className="space-y-6">
-                    {/* Available dates - In a real app, these would be fetched from an API */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Chọn ngày khởi hành
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {["01/06/2025", "15/06/2025", "01/07/2025", "15/07/2025"].map((date, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            className={`
-                              border rounded-md px-3 py-2 text-sm transition-colors
-                              ${selectedDate === date 
-                                ? 'bg-primary text-white border-primary' 
-                                : 'border-gray-300 hover:border-primary'
-                              }
-                            `}
-                            onClick={() => setSelectedDate(date)}
-                          >
-                            {date}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Traveler count */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Số lượng khách
-                      </label>
-                      <div className="flex border rounded-md">
-                        <button
-                          type="button"
-                          className="px-4 py-2 border-r"
-                          onClick={() => setTravelerCount(Math.max(1, travelerCount - 1))}
-                          disabled={travelerCount <= 1}
-                        >
-                          -
-                        </button>
-                        <div className="flex-1 flex items-center justify-center">
-                          {travelerCount}
-                        </div>
-                        <button
-                          type="button"
-                          className="px-4 py-2 border-l"
-                          onClick={() => setTravelerCount(Math.min(10, travelerCount + 1))}
-                          disabled={travelerCount >= 10}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Price breakdown */}
-                    <div className="space-y-2 pt-4 border-t">
-                      <div className="flex justify-between">
-                        <span>Đơn giá</span>
-                        <span>{formatPrice(tour.price)} x {travelerCount}</span>
-                      </div>
-                      <div className="flex justify-between font-medium">
-                        <span>Tổng cộng</span>
-                        <span>{formatPrice(tour.price * travelerCount)}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Booking button */}
-                    <Button 
-                      className="w-full"
-                      onClick={handleBooking}
-                      disabled={!selectedDate}
-                    >
-                      Đặt tour
-                    </Button>
-                    
-                    <p className="text-xs text-gray-500 text-center">
-                      Bạn sẽ không bị trừ tiền vào lúc này
-                    </p>
-                  </div>
-                </div>
+                ))}
+              </div>
+              
+              <div className="text-center mt-6">
+                <Button variant="outline">Xem tất cả đánh giá</Button>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Related tours */}
-        <div className="mt-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Tour tương tự</h2>
-            <Link to="/tours">
-              <Button variant="outline">
-                Xem tất cả
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {relatedTours.map((relatedTour) => (
-              <TourCard key={relatedTour.id} tour={relatedTour} />
-            ))}
+          {/* Booking sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-3xl font-bold text-primary">{formatCurrency(tour.price)}</span>
+                  <span className="text-gray-500">/người</span>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-1.5" />
+                  <span className="text-sm text-green-600">Còn chỗ</span>
+                </div>
+              </div>
+              
+              {showBookingSuccess ? (
+                <div className="bg-green-50 text-green-800 p-4 rounded-md mb-4">
+                  <div className="flex">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    <div>
+                      <h4 className="font-semibold">Đặt tour thành công!</h4>
+                      <p className="text-sm mt-1">
+                        Thông tin chi tiết đã được gửi vào email của bạn.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <form className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ngày khởi hành
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Số lượng người
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Users className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <select
+                        value={numTravelers}
+                        onChange={(e) => setNumTravelers(parseInt(e.target.value))}
+                        className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                          <option key={num} value={num}>
+                            {num} người
+                          </option>
+                        ))}
+                        <option value="11">Trên 10 người</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-gray-600">Đơn giá</span>
+                      <span>{formatCurrency(tour.price)} × {numTravelers}</span>
+                    </div>
+                    <div className="flex justify-between font-bold">
+                      <span>Tổng cộng</span>
+                      <span className="text-primary">{formatCurrency(tour.price * numTravelers)}</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="button" 
+                    className="w-full"
+                    onClick={handleBookNow}
+                    disabled={!selectedDate}
+                  >
+                    Đặt ngay
+                  </Button>
+                </form>
+              )}
+              
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-500">
+                  <button className="text-primary underline">Liên hệ với chúng tôi</button> nếu bạn có thắc mắc
+                </p>
+              </div>
+              
+              <div className="mt-6 border-t pt-4">
+                <h3 className="font-semibold mb-3">Bao gồm</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Vé tham quan các điểm trong chương trình</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Hướng dẫn viên suốt tuyến</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Ăn các bữa theo chương trình</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Phương tiện di chuyển</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="mt-4 border-t pt-4">
+                <h3 className="font-semibold mb-3">Không bao gồm</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <X className="h-4 w-4 text-red-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Chi phí cá nhân ngoài chương trình</span>
+                  </li>
+                  <li className="flex items-start">
+                    <X className="h-4 w-4 text-red-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Phụ thu phòng đơn (nếu có)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <X className="h-4 w-4 text-red-500 mr-1.5 mt-1" />
+                    <span className="text-sm">Đồ uống trong các bữa ăn</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

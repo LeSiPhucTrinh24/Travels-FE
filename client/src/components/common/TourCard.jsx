@@ -1,91 +1,112 @@
 import { Link } from 'react-router-dom';
 import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from '@/components/ui/button';
-import { MapPin, Calendar, Star, Users, Clock } from 'lucide-react';
+  Star, 
+  Clock, 
+  MapPin, 
+  Heart
+} from 'lucide-react';
 
-// Function to format price with thousand separators
-const formatPrice = (price) => {
+// Format currency
+const formatCurrency = (value) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0
-  }).format(price);
+  }).format(value);
 };
 
 const TourCard = ({ tour }) => {
-  const { 
-    id, 
-    name, 
-    description, 
-    price, 
-    duration, 
-    location, 
-    imageUrl, 
-    rating,
-    featured
+  const {
+    id,
+    name,
+    location,
+    duration,
+    price,
+    imageUrl,
+    rating = "4.5",
+    reviewCount = 0,
+    description,
+    featured = false
   } = tour;
-
+  
   return (
-    <Card className="overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow">
-      <div className="relative">
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden group">
+      {/* Image container */}
+      <div className="relative h-48 overflow-hidden">
         <img 
           src={imageUrl} 
           alt={name}
-          className="w-full h-48 object-cover"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
+        
+        {/* Featured badge */}
         {featured && (
-          <Badge className="absolute top-2 right-2 bg-primary">
+          <div className="absolute top-3 left-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
             Nổi bật
-          </Badge>
+          </div>
         )}
-        <div className="absolute bottom-2 right-2 bg-white rounded-full px-2 py-1 flex items-center shadow-md">
-          <Star className="h-3.5 w-3.5 text-yellow-500 mr-1" />
-          <span className="text-xs font-medium">{rating || '4.5'}</span>
-        </div>
+        
+        {/* Save button */}
+        <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow transition-colors">
+          <Heart className="h-4 w-4 text-gray-500 hover:text-red-500" />
+        </button>
       </div>
       
-      <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-lg line-clamp-1">{name}</CardTitle>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 mr-1" />
-          <span className="line-clamp-1">{location}</span>
+      {/* Content */}
+      <div className="p-4">
+        <div className="mb-2">
+          <div className="flex justify-between items-start">
+            <h3 className="text-lg font-semibold mr-8 text-gray-800 hover:text-primary">
+              <Link to={`/tours/${id}`} className="hover:underline">
+                {name}
+              </Link>
+            </h3>
+            <div className="flex items-center">
+              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
+              <span className="text-sm font-medium">{rating}</span>
+              {reviewCount > 0 && (
+                <span className="text-xs text-gray-500 ml-1">({reviewCount})</span>
+              )}
+            </div>
+          </div>
         </div>
-      </CardHeader>
-      
-      <CardContent className="p-4 pt-0 flex-grow">
-        <CardDescription className="line-clamp-2 mb-4 mt-2">
-          {description}
-        </CardDescription>
         
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex items-center text-muted-foreground">
-            <Clock className="h-3.5 w-3.5 mr-1.5" />
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center text-sm text-gray-600">
+            <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+            <span>{location}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
             <span>{duration}</span>
           </div>
-          <div className="flex items-center text-muted-foreground">
-            <Users className="h-3.5 w-3.5 mr-1.5" />
-            <span>2-10 người</span>
+        </div>
+        
+        {description && (
+          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+            {description}
+          </p>
+        )}
+        
+        <div className="flex justify-between items-center">
+          <div>
+            <span className="text-primary font-bold text-lg">
+              {formatCurrency(price)}
+            </span>
+            <span className="text-xs text-gray-500 block">
+              /người
+            </span>
           </div>
+          
+          <Link 
+            to={`/tours/${id}`}
+            className="bg-primary hover:bg-primary/90 text-white font-medium text-sm py-2 px-4 rounded"
+          >
+            Chi tiết
+          </Link>
         </div>
-      </CardContent>
-      
-      <CardFooter className="p-4 pt-0 flex justify-between items-center">
-        <div className="font-bold text-lg text-primary">
-          {formatPrice(price)}
-        </div>
-        <Link to={`/tours/${id}`}>
-          <Button size="sm">Xem chi tiết</Button>
-        </Link>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };
 
