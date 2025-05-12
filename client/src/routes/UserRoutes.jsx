@@ -1,38 +1,27 @@
-import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
+import MainLayout from '@/components/layouts/MainLayout';
 
-// Lazy load components for better performance
-const Home = lazy(() => import('@/pages/user/Home'));
-const TourDetail = lazy(() => import('@/pages/user/TourDetail'));
-const Tours = lazy(() => import('@/pages/user/Tours'));
-const About = lazy(() => import('@/pages/user/About'));
-const Contact = lazy(() => import('@/pages/user/Contact'));
-const Login = lazy(() => import('@/pages/user/Login'));
-const Register = lazy(() => import('@/pages/user/Register'));
-const NotFound = lazy(() => import('@/pages/not-found'));
+// User pages
+import Home from '@/pages/user/Home';
+import Tours from '@/pages/user/Tours';
+import TourDetail from '@/pages/user/TourDetail';
+import About from '@/pages/user/About';
+import Contact from '@/pages/user/Contact';
+import Login from '@/pages/user/Login';
+import NotFound from '@/pages/not-found';
 
-// Loading component
-const PageLoader = () => (
-  <div className="flex justify-center items-center h-[60vh]">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  </div>
-);
-
-const UserRoutes = () => {
+export default function UserRoutes() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/tours" element={<Tours />} />
-        <Route path="/tours/:id" element={<TourDetail />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <Routes>
+      <Route path="/" element={<MainLayout />}>
+        <Route index element={<Home />} />
+        <Route path="tours" element={<Tours />} />
+        <Route path="tours/:id" element={<TourDetail />} />
+        <Route path="about" element={<About />} />
+        <Route path="contact" element={<Contact />} />
+        <Route path="login" element={<Login />} />
         <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+      </Route>
+    </Routes>
   );
-};
-
-export default UserRoutes;
+}

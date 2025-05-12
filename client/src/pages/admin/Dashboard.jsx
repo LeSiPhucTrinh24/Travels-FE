@@ -1,19 +1,82 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { 
+  BadgeDollarSign, 
   Users, 
-  BookOpen, 
-  Star, 
+  MapPin, 
+  BriefcaseBusiness, 
+  ArrowUpRight, 
+  ArrowDownRight, 
   Calendar, 
   TrendingUp, 
-  TrendingDown,
-  DollarSign,
-  MapPin,
-  BarChart4
+  BarChart3, 
+  PieChart
 } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { sampleTours } from '@/lib/mockData';
 
-// Format currency
+// Mô phỏng các dữ liệu cho dashboard
+const dashboardData = {
+  stats: {
+    revenue: {
+      value: 352000000,
+      percentChange: 12.5,
+      isIncrease: true,
+    },
+    bookings: {
+      value: 547,
+      percentChange: 8.2,
+      isIncrease: true,
+    },
+    users: {
+      value: 2850,
+      percentChange: 5.7,
+      isIncrease: true,
+    },
+    tourCount: {
+      value: 65,
+      percentChange: -2.3,
+      isIncrease: false,
+    },
+  },
+  popularDestinations: [
+    { id: 1, name: 'Hạ Long', count: 127, percent: 100 },
+    { id: 2, name: 'Đà Nẵng', count: 95, percent: 75 },
+    { id: 3, name: 'Phú Quốc', count: 84, percent: 66 },
+    { id: 4, name: 'Đà Lạt', count: 72, percent: 57 },
+    { id: 5, name: 'Nha Trang', count: 63, percent: 50 },
+  ],
+  recentBookings: [
+    { id: 1, tourName: 'Khám phá Vịnh Hạ Long 3 ngày 2 đêm', customer: 'Nguyễn Văn A', date: '12/05/2025', amount: 4500000, status: 'confirmed' },
+    { id: 2, tourName: 'Tour Phú Quốc 4 ngày 3 đêm', customer: 'Trần Thị B', date: '11/05/2025', amount: 8200000, status: 'pending' },
+    { id: 3, tourName: 'Đà Nẵng - Hội An - Huế 5 ngày', customer: 'Lê Văn C', date: '10/05/2025', amount: 9700000, status: 'confirmed' },
+    { id: 4, tourName: 'Đà Lạt city tour 2 ngày', customer: 'Phạm Thị D', date: '09/05/2025', amount: 2500000, status: 'cancelled' },
+    { id: 5, tourName: 'Tour Sapa trekking 3 ngày', customer: 'Hoàng Văn E', date: '08/05/2025', amount: 3800000, status: 'confirmed' },
+  ],
+  monthlyRevenue: [
+    { month: 'T1', value: 150000000 },
+    { month: 'T2', value: 180000000 },
+    { month: 'T3', value: 220000000 },
+    { month: 'T4', value: 270000000 },
+    { month: 'T5', value: 290000000 },
+    { month: 'T6', value: 320000000 },
+    { month: 'T7', value: 380000000 },
+    { month: 'T8', value: 360000000 },
+    { month: 'T9', value: 310000000 },
+    { month: 'T10', value: 280000000 },
+    { month: 'T11', value: 240000000 },
+    { month: 'T12', value: 290000000 },
+  ],
+};
+
+// Format tiền tệ
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -22,282 +85,290 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
-// Stat card component
-const StatCard = ({ title, value, icon: Icon, change, changeType }) => (
-  <div className="bg-white p-6 rounded-lg shadow-sm">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <h3 className="text-2xl font-bold mt-1">{value}</h3>
-        
-        {change && (
-          <div className={`flex items-center mt-2 text-sm ${
-            changeType === 'up' ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {changeType === 'up' ? (
-              <TrendingUp className="h-4 w-4 mr-1" />
-            ) : (
-              <TrendingDown className="h-4 w-4 mr-1" />
-            )}
-            <span>{change}</span>
+// Format số lượng
+const formatNumber = (value) => {
+  return new Intl.NumberFormat('vi-VN').format(value);
+};
+
+// Component Card Stats
+const StatCard = ({ title, value, icon: Icon, percentChange, isIncrease, isCurrency }) => {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">{title}</p>
+            <h3 className="text-2xl font-bold mt-1">
+              {isCurrency ? formatCurrency(value) : formatNumber(value)}
+            </h3>
           </div>
-        )}
-      </div>
-      <div className="p-3 rounded-full bg-primary/10">
-        <Icon className="h-6 w-6 text-primary" />
+          <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+        </div>
+        
+        <div className="mt-4 flex items-center">
+          <div className={`flex items-center ${isIncrease ? 'text-green-600' : 'text-red-600'}`}>
+            {isIncrease ? (
+              <ArrowUpRight className="h-4 w-4 mr-1" />
+            ) : (
+              <ArrowDownRight className="h-4 w-4 mr-1" />
+            )}
+            <span className="font-medium">{Math.abs(percentChange)}%</span>
+          </div>
+          <span className="text-gray-500 text-sm ml-2">so với tháng trước</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Component Recent Bookings
+const RecentBookingRow = ({ booking }) => {
+  const statusClasses = {
+    confirmed: 'bg-green-100 text-green-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    cancelled: 'bg-red-100 text-red-800',
+  };
+  
+  const statusLabels = {
+    confirmed: 'Đã xác nhận',
+    pending: 'Đang chờ',
+    cancelled: 'Đã hủy',
+  };
+  
+  return (
+    <tr className="border-b border-gray-200">
+      <td className="px-4 py-3 text-sm">{booking.tourName}</td>
+      <td className="px-4 py-3 text-sm">{booking.customer}</td>
+      <td className="px-4 py-3 text-sm">{booking.date}</td>
+      <td className="px-4 py-3 text-sm font-medium">{formatCurrency(booking.amount)}</td>
+      <td className="px-4 py-3 text-sm">
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[booking.status]}`}>
+          {statusLabels[booking.status]}
+        </span>
+      </td>
+    </tr>
+  );
+};
+
+// Component Chart (simple representation since we're not using a real chart library)
+const SimpleBarChart = ({ data }) => {
+  const maxValue = Math.max(...data.map(item => item.value));
+  
+  return (
+    <div className="w-full mt-4">
+      <div className="flex justify-between mb-2">
+        {data.map((item, index) => (
+          <div key={index} className="flex flex-col items-center" style={{ width: `${100 / data.length}%` }}>
+            <div className="w-full px-1">
+              <div 
+                className="bg-primary rounded-t-sm" 
+                style={{ 
+                  height: `${(item.value / maxValue) * 150}px`, 
+                  minHeight: '10px', 
+                  transition: 'height 0.3s ease'
+                }}
+              ></div>
+            </div>
+            <span className="text-xs text-gray-600 mt-1">{item.month}</span>
+          </div>
+        ))}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const Dashboard = () => {
-  const [stats, setStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('week');
-
-  useEffect(() => {
-    // Simulate API call to get dashboard data
-    const fetchData = async () => {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock data
-      const mockStats = {
-        bookings: {
-          total: 156,
-          change: '+12%',
-          changeType: 'up'
-        },
-        revenue: {
-          total: 12500000,
-          change: '+8%',
-          changeType: 'up'
-        },
-        users: {
-          total: 345,
-          change: '+5%',
-          changeType: 'up'
-        },
-        reviews: {
-          total: 78,
-          change: '-3%',
-          changeType: 'down'
-        },
-        popularDestinations: [
-          { name: 'Hạ Long', bookings: 42 },
-          { name: 'Đà Nẵng', bookings: 37 },
-          { name: 'Phú Quốc', bookings: 28 },
-          { name: 'Đà Lạt', bookings: 26 },
-          { name: 'Nha Trang', bookings: 23 }
-        ],
-        recentBookings: [
-          { id: 1, customer: 'Nguyễn Văn A', tour: 'Vịnh Hạ Long 2 ngày 1 đêm', date: '15/05/2025', amount: 1790000, status: 'confirmed' },
-          { id: 2, customer: 'Trần Thị B', tour: 'Đà Nẵng - Hội An 3 ngày 2 đêm', date: '14/05/2025', amount: 2590000, status: 'pending' },
-          { id: 3, customer: 'Lê Văn C', tour: 'Phú Quốc 4 ngày 3 đêm', date: '12/05/2025', amount: 3490000, status: 'confirmed' },
-          { id: 4, customer: 'Phạm Thị D', tour: 'Đà Lạt 3 ngày 2 đêm', date: '10/05/2025', amount: 2190000, status: 'cancelled' },
-          { id: 5, customer: 'Hoàng Văn E', tour: 'Sapa 2 ngày 1 đêm', date: '08/05/2025', amount: 1490000, status: 'confirmed' },
-        ]
-      };
-      
-      setStats(mockStats);
-      setIsLoading(false);
-    };
-    
-    fetchData();
-  }, [dateRange]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
+// Biểu đồ donut đơn giản
+const SimplePieChart = ({ data }) => {
+  const total = data.reduce((sum, item) => sum + item.count, 0);
+  let currentOffset = 0;
+  
+  // Màu sắc cho các phần
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        
-        <div className="inline-flex rounded-md shadow-sm">
-          <button
-            type="button"
-            onClick={() => setDateRange('week')}
-            className={`px-4 py-2 text-sm font-medium rounded-l-md ${
-              dateRange === 'week' 
-                ? 'bg-primary text-white' 
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            } border border-gray-300`}
-          >
-            Tuần
-          </button>
-          <button
-            type="button"
-            onClick={() => setDateRange('month')}
-            className={`px-4 py-2 text-sm font-medium ${
-              dateRange === 'month' 
-                ? 'bg-primary text-white' 
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            } border-t border-b border-gray-300`}
-          >
-            Tháng
-          </button>
-          <button
-            type="button"
-            onClick={() => setDateRange('year')}
-            className={`px-4 py-2 text-sm font-medium rounded-r-md ${
-              dateRange === 'year' 
-                ? 'bg-primary text-white' 
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            } border border-gray-300`}
-          >
-            Năm
-          </button>
+    <div className="relative h-48 w-48 mx-auto">
+      <svg viewBox="0 0 100 100" className="h-full w-full">
+        {data.map((item, index) => {
+          const percentage = (item.count / total) * 100;
+          const degrees = percentage * 3.6; // 3.6 degrees per percent
+          const offset = currentOffset;
+          currentOffset += degrees;
+          
+          return (
+            <circle 
+              key={index}
+              cx="50" 
+              cy="50" 
+              r="40"
+              fill="transparent"
+              stroke={colors[index % colors.length]}
+              strokeWidth="20"
+              strokeDasharray={`${percentage * 2.51} 251`} // 2.51 = 40 * 2 * PI / 100
+              strokeDashoffset={`${-offset * 2.51 / 3.6 + 62.75}`} // 62.75 = 40 * 2 * PI / 4 (start at top)
+              transform="rotate(-90 50 50)"
+            />
+          );
+        })}
+        <circle cx="50" cy="50" r="30" fill="white" />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center">
+          <span className="block text-2xl font-bold">{total}</span>
+          <span className="text-xs text-gray-500">tổng đặt tour</span>
         </div>
       </div>
+    </div>
+  );
+};
+
+const Dashboard = () => {
+  const [totalTours, setTotalTours] = useState(0);
+  
+  useEffect(() => {
+    // Demo: Đếm tổng số tour từ mockData
+    setTotalTours(sampleTours.length);
+  }, []);
+  
+  return (
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
+        <p className="text-gray-600">
+          Tổng quan về hoạt động kinh doanh của TravelNow
+        </p>
+      </div>
       
-      {/* Stats Grid */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard 
-          title="Tổng booking" 
-          value={stats.bookings.total}
-          icon={BookOpen}
-          change={stats.bookings.change}
-          changeType={stats.bookings.changeType}
-        />
-        <StatCard 
           title="Doanh thu" 
-          value={formatCurrency(stats.revenue.total)}
-          icon={DollarSign}
-          change={stats.revenue.change}
-          changeType={stats.revenue.changeType}
+          value={dashboardData.stats.revenue.value} 
+          icon={BadgeDollarSign} 
+          percentChange={dashboardData.stats.revenue.percentChange}
+          isIncrease={dashboardData.stats.revenue.isIncrease}
+          isCurrency={true}
         />
+        
+        <StatCard 
+          title="Đặt tour" 
+          value={dashboardData.stats.bookings.value} 
+          icon={BriefcaseBusiness} 
+          percentChange={dashboardData.stats.bookings.percentChange}
+          isIncrease={dashboardData.stats.bookings.isIncrease}
+          isCurrency={false}
+        />
+        
         <StatCard 
           title="Người dùng" 
-          value={stats.users.total}
-          icon={Users}
-          change={stats.users.change}
-          changeType={stats.users.changeType}
+          value={dashboardData.stats.users.value} 
+          icon={Users} 
+          percentChange={dashboardData.stats.users.percentChange}
+          isIncrease={dashboardData.stats.users.isIncrease}
+          isCurrency={false}
         />
+        
         <StatCard 
-          title="Đánh giá" 
-          value={stats.reviews.total}
-          icon={Star}
-          change={stats.reviews.change}
-          changeType={stats.reviews.changeType}
+          title="Tours" 
+          value={dashboardData.stats.tourCount.value} 
+          icon={MapPin} 
+          percentChange={dashboardData.stats.tourCount.percentChange}
+          isIncrease={dashboardData.stats.tourCount.isIncrease}
+          isCurrency={false}
         />
       </div>
       
-      {/* Charts & Tables Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Bookings */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Đơn đặt tour gần đây</h2>
-            <Link to="/admin/bookings" className="text-primary hover:underline text-sm">
-              Xem tất cả
-            </Link>
+      {/* Charts and Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Revenue Chart */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Doanh thu hàng tháng</CardTitle>
+                <CardDescription>Biểu đồ doanh thu theo tháng trong năm 2025</CardDescription>
+              </div>
+              <div className="flex items-center text-primary text-sm">
+                <TrendingUp className="h-4 w-4 mr-1" />
+                <span>11.5% tăng trưởng</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <SimpleBarChart data={dashboardData.monthlyRevenue} />
+          </CardContent>
+        </Card>
+        
+        {/* Bookings by Destination */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Đặt tour theo điểm đến</CardTitle>
+                <CardDescription>Phân bố đặt tour theo các điểm đến</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" className="h-8">
+                <Calendar className="h-3.5 w-3.5 mr-1" />
+                <span>Năm 2025</span>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                {dashboardData.popularDestinations.map((destination) => (
+                  <div key={destination.id}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">{destination.name}</span>
+                      <span className="text-sm text-gray-500">{destination.count} đặt</span>
+                    </div>
+                    <Progress value={destination.percent} className="h-2" />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <SimplePieChart data={dashboardData.popularDestinations} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Recent Bookings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Đặt tour gần đây</CardTitle>
+              <CardDescription>
+                Danh sách các đặt tour mới nhất từ khách hàng
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm">Xem tất cả</Button>
           </div>
-          
+        </CardHeader>
+        <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="py-3 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="py-3 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
-                  <th className="py-3 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
-                  <th className="py-3 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày</th>
-                  <th className="py-3 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiền</th>
-                  <th className="py-3 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <tr className="bg-gray-50">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thành tiền</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {stats.recentBookings.map((booking) => (
-                  <tr key={booking.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-3 px-2 text-sm">{booking.id}</td>
-                    <td className="py-3 px-2 text-sm">{booking.customer}</td>
-                    <td className="py-3 px-2 text-sm">{booking.tour}</td>
-                    <td className="py-3 px-2 text-sm">{booking.date}</td>
-                    <td className="py-3 px-2 text-sm font-medium">{formatCurrency(booking.amount)}</td>
-                    <td className="py-3 px-2 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        booking.status === 'confirmed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : booking.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {booking.status === 'confirmed' 
-                          ? 'Đã xác nhận'
-                          : booking.status === 'pending'
-                            ? 'Đang xử lý'
-                            : 'Đã hủy'
-                        }
-                      </span>
-                    </td>
-                  </tr>
+                {dashboardData.recentBookings.map((booking) => (
+                  <RecentBookingRow key={booking.id} booking={booking} />
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-        
-        {/* Popular Destinations */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Điểm đến phổ biến</h2>
-            <Button variant="ghost" size="sm" className="text-primary">
-              <BarChart4 className="h-4 w-4 mr-1" />
-              Báo cáo
-            </Button>
-          </div>
-          
-          <div className="space-y-4">
-            {stats.popularDestinations.map((destination, index) => (
-              <div key={destination.name} className="flex items-center">
-                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-medium mr-3">
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 text-gray-500 mr-1" />
-                      <span className="font-medium">{destination.name}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">{destination.bookings} đơn</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-primary rounded-full h-2" 
-                      style={{ 
-                        width: `${(destination.bookings / stats.popularDestinations[0].bookings) * 100}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      {/* Calendar Section */}
-      <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">Lịch tour sắp tới</h2>
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Lịch đầy đủ
-          </Button>
-        </div>
-        
-        <div className="p-6 bg-gray-50 rounded-lg text-center">
-          <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Chức năng lịch tour</h3>
-          <p className="text-gray-600 mb-4">
-            Tính năng này sẽ hiển thị lịch chi tiết các tour đã được đặt trong thời gian tới
-          </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

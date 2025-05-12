@@ -1,209 +1,185 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Menu, 
-  X, 
-  Home, 
+  BarChart3, 
   Map, 
   Users, 
   BookOpen, 
-  Star, 
-  BarChart2, 
-  Settings,
-  Bell,
-  Search,
-  LogOut,
-  User as UserIcon,
-  ChevronDown
+  MessageSquare, 
+  LogOut, 
+  Menu, 
+  X, 
+  ChevronDown,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const AdminLayout = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+// Menu items for the sidebar
+const menuItems = [
+  { 
+    icon: BarChart3, 
+    label: 'Dashboard',
+    href: '/admin',
+  },
+  { 
+    icon: Map, 
+    label: 'Tours',
+    href: '/admin/tours',
+  },
+  { 
+    icon: BookOpen, 
+    label: 'Bookings',
+    href: '/admin/bookings',
+  },
+  { 
+    icon: Users, 
+    label: 'Users',
+    href: '/admin/users',
+  },
+  { 
+    icon: MessageSquare, 
+    label: 'Reviews',
+    href: '/admin/reviews',
+  },
+];
+
+const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   
-  // Check if path is active
-  const isActive = (path) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
-    }
-    return location.pathname.startsWith(path);
+  // Toggle sidebar on mobile
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
   
-  // Navigation items
-  const navigationItems = [
-    { name: 'Dashboard', href: '/admin', icon: Home },
-    { name: 'Quản lý tour', href: '/admin/tours', icon: Map },
-    { name: 'Quản lý người dùng', href: '/admin/users', icon: Users },
-    { name: 'Quản lý đơn hàng', href: '/admin/bookings', icon: BookOpen },
-    { name: 'Quản lý đánh giá', href: '/admin/reviews', icon: Star },
-    { name: 'Báo cáo', href: '/admin/reports', icon: BarChart2 },
-    { name: 'Cài đặt', href: '/admin/settings', icon: Settings },
-  ];
-  
+  // Handle logout
   const handleLogout = () => {
-    // Handle logout logic here
+    // Giả lập đăng xuất và chuyển hướng về trang login
     console.log('Logging out...');
     navigate('/login');
   };
   
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
-      {/* Sidebar for desktop */}
-      <div 
-        className={`fixed inset-y-0 left-0 flex flex-col z-40 transition-all duration-300 ease-in-out bg-gray-800 text-white md:relative ${
-          isSidebarOpen ? 'w-64' : 'w-20'
-        } ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar - Desktop */}
+      <aside 
+        className={`bg-white border-r border-gray-200 w-64 fixed inset-y-0 left-0 z-30 transition-transform duration-300 transform ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0`}
       >
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-700">
-          <div className="flex items-center">
-            {isSidebarOpen ? (
-              <span className="text-xl font-bold">TravelNow Admin</span>
-            ) : (
-              <span className="text-xl font-bold">TN</span>
-            )}
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="hidden md:block p-1 rounded-md text-gray-400 hover:text-white focus:outline-none"
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+          <Link 
+            to="/admin" 
+            className="flex items-center"
           >
-            <svg 
-              className="h-6 w-6" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor" 
-              strokeWidth={2}
-            >
-              {isSidebarOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-              )}
-            </svg>
-          </button>
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-2 rounded-md text-gray-400 hover:text-white focus:outline-none"
+            <span className="text-xl font-bold text-primary">TravelNow</span>
+            <span className="ml-2 text-sm font-medium text-gray-600">Admin</span>
+          </Link>
+          
+          <button 
+            className="p-1 rounded-md lg:hidden"
+            onClick={toggleSidebar}
           >
-            <X className="h-6 w-6" />
+            <X className="h-6 w-6 text-gray-500" />
           </button>
         </div>
         
-        {/* Sidebar content */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <nav className="flex-1 px-2 py-4 space-y-1">
-            {navigationItems.map((item) => {
+        {/* Sidebar Content */}
+        <div className="py-4 flex flex-col h-[calc(100%-4rem)] justify-between">
+          <nav className="px-4 space-y-1">
+            {menuItems.map((item) => {
               const Icon = item.icon;
+              const isActive = location.pathname === item.href || 
+                (item.href !== '/admin' && location.pathname.startsWith(item.href));
+              
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   to={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive(item.href) 
-                      ? 'bg-gray-900 text-white' 
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  className={`flex items-center px-4 py-3 text-sm rounded-md ${
+                    isActive 
+                      ? 'bg-primary text-white' 
+                      : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon className={`mr-3 h-6 w-6 ${isSidebarOpen ? '' : 'mx-auto'}`} />
-                  {isSidebarOpen && <span>{item.name}</span>}
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'} mr-3`} />
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
           </nav>
+          
+          <div className="px-4 mt-auto">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start text-gray-700"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5 mr-3 text-gray-500" />
+              Đăng xuất
+            </Button>
+          </div>
         </div>
-        
-        {/* Sidebar footer */}
-        <div className="p-4 border-t border-gray-700">
-          <button
-            onClick={handleLogout}
-            className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
-              isSidebarOpen ? 'w-full' : 'justify-center'
-            }`}
-          >
-            <LogOut className={`h-6 w-6 ${isSidebarOpen ? 'mr-3' : 'mx-auto'}`} />
-            {isSidebarOpen && <span>Đăng xuất</span>}
-          </button>
-        </div>
-      </div>
+      </aside>
       
-      {/* Mobile menu overlay */}
-      {isMobileMenuOpen && (
+      {/* Mobile sidebar overlay */}
+      {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-30 bg-gray-600 bg-opacity-75 md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={toggleSidebar}
         ></div>
       )}
       
       {/* Main content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Top header */}
-        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:bg-gray-100 focus:text-gray-600"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          
-          {/* Search */}
-          <div className="flex-1 px-4 flex justify-between">
-            <div className="flex-1 flex">
-              <div className="w-full max-w-2xl relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
-                  placeholder="Tìm kiếm..."
-                  type="search"
-                />
-              </div>
-            </div>
+      <div className="flex-1 flex flex-col lg:pl-64">
+        {/* Navbar */}
+        <header className="bg-white shadow-sm z-10 h-16">
+          <div className="flex items-center justify-between h-full px-4 lg:px-8">
+            {/* Mobile sidebar toggle */}
+            <button 
+              className="p-1 rounded-md lg:hidden"
+              onClick={toggleSidebar}
+            >
+              <Menu className="h-6 w-6 text-gray-500" />
+            </button>
             
-            {/* Profile dropdown */}
-            <div className="ml-4 flex items-center md:ml-6">
-              {/* Notification dropdown */}
-              <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 relative">
-                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center text-xs text-white">
-                  3
-                </span>
-                <Bell className="h-6 w-6" />
-              </button>
-              
-              {/* Profile dropdown */}
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  >
-                    <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center">
-                      <UserIcon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-2 hidden md:block font-medium text-gray-700">Admin</span>
-                    <ChevronDown className="ml-1 hidden md:block h-4 w-4 text-gray-400" />
-                  </button>
-                </div>
+            {/* Profile and notifications */}
+            <div className="flex items-center ml-auto">
+              {/* User profile dropdown */}
+              <div className="relative">
+                <button 
+                  className="flex items-center"
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                >
+                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <span className="hidden md:block ml-2 text-sm font-medium text-gray-700">Admin</span>
+                  <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />
+                </button>
                 
                 {isProfileMenuOpen && (
-                  <div
-                    className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
-                    onClick={() => setIsProfileMenuOpen(false)}
-                  >
-                    <Link to="/admin/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Hồ sơ của bạn
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                    <Link 
+                      to="/admin/profile" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Hồ sơ
                     </Link>
-                    <Link to="/admin/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <Link 
+                      to="/admin/settings" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
                       Cài đặt
                     </Link>
                     <button 
-                      onClick={handleLogout} 
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={handleLogout}
                     >
                       Đăng xuất
                     </button>
@@ -212,11 +188,11 @@ const AdminLayout = ({ children }) => {
               </div>
             </div>
           </div>
-        </div>
+        </header>
         
-        {/* Page content */}
-        <main className="flex-1 relative overflow-y-auto focus:outline-none bg-gray-100">
-          {children}
+        {/* Main content */}
+        <main className="flex-1 overflow-auto">
+          <Outlet />
         </main>
       </div>
     </div>
