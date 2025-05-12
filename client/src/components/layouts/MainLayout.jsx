@@ -20,14 +20,16 @@ const MainLayout = ({ children }) => {
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-primary">TravelNow</span>
-            </Link>
+          <div className="flex items-center h-16">
+            {/* Logo (Left) */}
+            <div className="flex-shrink-0 mr-10">
+              <Link to="/" className="flex items-center">
+                <span className="text-xl font-bold text-primary">TravelNow</span>
+              </Link>
+            </div>
             
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
+            {/* Desktop Navigation (Center) */}
+            <nav className="hidden md:flex items-center justify-center flex-1 space-x-8">
               <Link 
                 to="/" 
                 className={`text-sm font-medium hover:text-primary transition-colors ${
@@ -62,8 +64,8 @@ const MainLayout = ({ children }) => {
               </Link>
             </nav>
             
-            {/* Desktop Login/Register */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* Desktop Login/Register (Right) */}
+            <div className="hidden md:flex items-center ml-auto space-x-4">
               <Link to="/login">
                 <Button variant="ghost">
                   <LogIn className="h-4 w-4 mr-2" />
@@ -75,9 +77,9 @@ const MainLayout = ({ children }) => {
               </Link>
             </div>
             
-            {/* Mobile menu button */}
+            {/* Mobile menu button (right side on mobile) */}
             <button 
-              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              className="md:hidden ml-auto p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <span className="sr-only">Mở menu</span>
