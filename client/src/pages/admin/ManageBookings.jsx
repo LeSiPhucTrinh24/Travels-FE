@@ -1,133 +1,15 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Search,
-  MoreHorizontal,
-  Calendar,
-  MapPin,
-  User,
+import { 
+  Search, 
+  Edit, 
+  Filter, 
+  ArrowUpDown,
   CheckCircle,
   XCircle,
-  Clock,
-  CreditCard,
-  FileText,
-  Filter
+  Calendar
 } from 'lucide-react';
-
-// Sample bookings data
-const mockBookings = [
-  {
-    id: 1,
-    tourId: 1,
-    tourName: 'Vịnh Hạ Long 2 ngày 1 đêm',
-    location: 'Hạ Long, Quảng Ninh',
-    userId: 101,
-    userName: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '0901234567',
-    bookingDate: '2025-05-01',
-    travelDate: '2025-06-15',
-    numTravelers: 2,
-    totalAmount: 5980000,
-    status: 'confirmed',
-    paymentMethod: 'credit_card',
-    paymentStatus: 'paid',
-  },
-  {
-    id: 2,
-    tourId: 3,
-    tourName: 'Đà Nẵng - Hội An 3 ngày',
-    location: 'Đà Nẵng, Hội An',
-    userId: 102,
-    userName: 'Trần Thị B',
-    email: 'tranthib@example.com',
-    phone: '0912345678',
-    bookingDate: '2025-05-02',
-    travelDate: '2025-06-20',
-    numTravelers: 3,
-    totalAmount: 7500000,
-    status: 'pending',
-    paymentMethod: 'bank_transfer',
-    paymentStatus: 'pending',
-  },
-  {
-    id: 3,
-    tourId: 2,
-    tourName: 'Phú Quốc - Đảo Ngọc',
-    location: 'Phú Quốc, Kiên Giang',
-    userId: 103,
-    userName: 'Lê Văn C',
-    email: 'levanc@example.com',
-    phone: '0923456789',
-    bookingDate: '2025-05-03',
-    travelDate: '2025-07-01',
-    numTravelers: 4,
-    totalAmount: 8400000,
-    status: 'confirmed',
-    paymentMethod: 'credit_card',
-    paymentStatus: 'paid',
-  },
-  {
-    id: 4,
-    tourId: 4,
-    tourName: 'Sapa - Thung lũng Mường Hoa',
-    location: 'Sapa, Lào Cai',
-    userId: 104,
-    userName: 'Phạm Văn D',
-    email: 'phamvand@example.com',
-    phone: '0934567890',
-    bookingDate: '2025-05-04',
-    travelDate: '2025-06-25',
-    numTravelers: 2,
-    totalAmount: 5580000,
-    status: 'cancelled',
-    paymentMethod: 'credit_card',
-    paymentStatus: 'refunded',
-  },
-  {
-    id: 5,
-    tourId: 1,
-    tourName: 'Vịnh Hạ Long 2 ngày 1 đêm',
-    location: 'Hạ Long, Quảng Ninh',
-    userId: 105,
-    userName: 'Hoàng Thị E',
-    email: 'hoangthie@example.com',
-    phone: '0945678901',
-    bookingDate: '2025-05-05',
-    travelDate: '2025-07-05',
-    numTravelers: 3,
-    totalAmount: 5980000,
-    status: 'confirmed',
-    paymentMethod: 'bank_transfer',
-    paymentStatus: 'paid',
-  },
-];
 
 // Format currency
 const formatCurrency = (value) => {
@@ -138,304 +20,240 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
-// Format date
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-};
-
 const ManageBookings = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   
-  // Simulating API call with React Query
-  const { 
-    data: bookings = [], 
-    isLoading, 
-    isError 
-  } = useQuery({
-    queryKey: ['/api/admin/bookings'],
-    queryFn: () => Promise.resolve(mockBookings),
-    staleTime: Infinity,
+  // Mock bookings data
+  const bookings = [
+    { 
+      id: 1, 
+      customer: 'Nguyễn Văn A', 
+      customerEmail: 'nguyenvana@example.com',
+      customerPhone: '0912345678',
+      tour: 'Vịnh Hạ Long 2 ngày 1 đêm', 
+      tourId: 1,
+      travelDate: '20/05/2025',
+      bookingDate: '15/05/2025', 
+      persons: 2,
+      amount: 3580000, 
+      status: 'confirmed' 
+    },
+    { 
+      id: 2, 
+      customer: 'Trần Thị B', 
+      customerEmail: 'tranthib@example.com',
+      customerPhone: '0923456789',
+      tour: 'Đà Nẵng - Hội An 3 ngày 2 đêm', 
+      tourId: 2,
+      travelDate: '25/05/2025',
+      bookingDate: '14/05/2025', 
+      persons: 3,
+      amount: 7770000, 
+      status: 'pending' 
+    },
+    { 
+      id: 3, 
+      customer: 'Lê Văn C', 
+      customerEmail: 'levanc@example.com',
+      customerPhone: '0934567890',
+      tour: 'Phú Quốc 4 ngày 3 đêm', 
+      tourId: 3,
+      travelDate: '05/06/2025',
+      bookingDate: '12/05/2025', 
+      persons: 2,
+      amount: 6980000, 
+      status: 'confirmed' 
+    },
+    { 
+      id: 4, 
+      customer: 'Phạm Thị D', 
+      customerEmail: 'phamthid@example.com',
+      customerPhone: '0945678901',
+      tour: 'Đà Lạt 3 ngày 2 đêm', 
+      tourId: 4,
+      travelDate: '01/06/2025',
+      bookingDate: '10/05/2025', 
+      persons: 4,
+      amount: 8760000, 
+      status: 'cancelled' 
+    },
+    { 
+      id: 5, 
+      customer: 'Hoàng Văn E', 
+      customerEmail: 'hoangvane@example.com',
+      customerPhone: '0956789012',
+      tour: 'Sapa 2 ngày 1 đêm', 
+      tourId: 5,
+      travelDate: '15/05/2025',
+      bookingDate: '08/05/2025', 
+      persons: 1,
+      amount: 1490000, 
+      status: 'confirmed' 
+    },
+  ];
+  
+  // Filter bookings based on search term and status
+  const filteredBookings = bookings.filter(booking => {
+    const matchSearchTerm = 
+      booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.tour.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.id.toString().includes(searchTerm);
+      
+    const matchStatus = statusFilter === 'all' || booking.status === statusFilter;
+    
+    return matchSearchTerm && matchStatus;
   });
   
-  // Filter bookings based on search query and status
-  const filteredBookings = bookings.filter(
-    (booking) => {
-      const matchesSearch = 
-        booking.tourName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.id.toString().includes(searchQuery);
-      
-      const matchesStatus = 
-        statusFilter === 'all' ||
-        booking.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    }
-  );
-  
-  // Handle booking status update
-  const handleUpdateStatus = (id, newStatus) => {
-    console.log(`Updating booking ${id} status to ${newStatus}`);
-    // In a real app, we would make an API call to update the booking status
-    // and then invalidate the query to refresh the data
+  // Handler for status update
+  const handleStatusUpdate = (bookingId, newStatus) => {
+    console.log(`Updating booking ${bookingId} to status: ${newStatus}`);
+    // In a real application, this would make an API call to update the status
   };
   
-  // Count bookings by status
-  const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
-  const pendingCount = bookings.filter(b => b.status === 'pending').length;
-  const cancelledCount = bookings.filter(b => b.status === 'cancelled').length;
-  
-  // Calculate total revenue
-  const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed')
-    .reduce((total, booking) => total + booking.totalAmount, 0);
-  
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Quản lý đặt tour</h1>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant={statusFilter === 'all' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('all')}
-          >
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Quản lý đơn đặt tour</h1>
+        
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => setStatusFilter('all')} className={statusFilter === 'all' ? 'bg-gray-100' : ''}>
             Tất cả
           </Button>
-          <Button 
-            variant={statusFilter === 'pending' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('pending')}
-          >
-            Đang chờ
+          <Button variant="outline" onClick={() => setStatusFilter('pending')} className={statusFilter === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : ''}>
+            Đang xử lý
           </Button>
-          <Button 
-            variant={statusFilter === 'confirmed' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('confirmed')}
-          >
+          <Button variant="outline" onClick={() => setStatusFilter('confirmed')} className={statusFilter === 'confirmed' ? 'bg-green-50 text-green-700 border-green-200' : ''}>
             Đã xác nhận
           </Button>
-          <Button 
-            variant={statusFilter === 'cancelled' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('cancelled')}
-          >
+          <Button variant="outline" onClick={() => setStatusFilter('cancelled')} className={statusFilter === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : ''}>
             Đã hủy
           </Button>
         </div>
       </div>
       
-      <div className="flex items-center">
-        <div className="flex items-center w-full max-w-sm space-x-2 mr-4">
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
           <Input
-            type="text"
-            placeholder="Tìm kiếm theo tên, email, ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9"
+            placeholder="Tìm kiếm đơn đặt tour..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
-          <Button type="submit" size="sm" variant="ghost">
-            <Search className="h-4 w-4" />
-            <span className="sr-only">Tìm kiếm</span>
-          </Button>
         </div>
         
-        <Button variant="outline" size="sm" className="ml-auto">
-          <FileText className="h-4 w-4 mr-2" />
-          Xuất báo cáo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Calendar className="h-4 w-4 mr-2" />
+            Lọc theo ngày
+          </Button>
+          <Button variant="outline">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Sắp xếp
+          </Button>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng số đặt tour
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bookings.length}</div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <Calendar className="h-4 w-4 mr-1" />
-              <span>Trong tháng hiện tại</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đã xác nhận
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{confirmedCount}</div>
-            <div className="flex items-center text-sm text-green-500 mt-1">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              <span>{Math.round((confirmedCount / bookings.length) * 100)}% tổng số</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đang chờ xác nhận
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingCount}</div>
-            <div className="flex items-center text-sm text-amber-500 mt-1">
-              <Clock className="h-4 w-4 mr-1" />
-              <span>Cần xử lý</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng doanh thu
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-            <div className="flex items-center text-sm text-green-500 mt-1">
-              <CreditCard className="h-4 w-4 mr-1" />
-              <span>Từ {confirmedCount} đặt tour</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách đặt tour</CardTitle>
-          <CardDescription>
-            Quản lý tất cả các đặt tour trong hệ thống
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : isError ? (
-            <div className="flex justify-center items-center h-64 text-destructive">
-              <p>Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau!</p>
-            </div>
-          ) : filteredBookings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-              <Calendar className="h-12 w-12 mb-2 opacity-20" />
-              <p className="text-center">
-                {searchQuery || statusFilter !== 'all'
-                  ? "Không tìm thấy đặt tour phù hợp"
-                  : "Chưa có đặt tour nào"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">ID</TableHead>
-                    <TableHead>Thông tin tour</TableHead>
-                    <TableHead>Khách hàng</TableHead>
-                    <TableHead>Ngày đặt</TableHead>
-                    <TableHead>Ngày đi</TableHead>
-                    <TableHead>Giá trị</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{booking.id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{booking.tourName}</div>
-                          <div className="text-sm text-muted-foreground flex items-center">
-                            <MapPin className="h-3.5 w-3.5 mr-1" />
-                            {booking.location}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{booking.userName}</div>
-                          <div className="text-sm text-muted-foreground flex items-center">
-                            <User className="h-3.5 w-3.5 mr-1" />
-                            {booking.email}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatDate(booking.bookingDate)}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{formatDate(booking.travelDate)}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {booking.numTravelers} người
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatCurrency(booking.totalAmount)}</TableCell>
-                      <TableCell>
-                        {booking.status === 'confirmed' && (
-                          <Badge className="bg-green-500">Đã xác nhận</Badge>
-                        )}
-                        {booking.status === 'pending' && (
-                          <Badge variant="outline" className="text-amber-500 border-amber-500">Đang chờ</Badge>
-                        )}
-                        {booking.status === 'cancelled' && (
-                          <Badge variant="outline" className="text-red-500 border-red-500">Đã hủy</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <FileText className="mr-2 h-4 w-4" />
-                              <span>Xem chi tiết</span>
-                            </DropdownMenuItem>
-                            
-                            {booking.status === 'pending' && (
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(booking.id, 'confirmed')}>
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                                <span>Xác nhận đặt tour</span>
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {booking.status !== 'cancelled' && (
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(booking.id, 'cancelled')}>
-                                <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                                <span>Hủy đặt tour</span>
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày đi</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng tiền</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredBookings.map((booking) => (
+                <tr key={booking.id} className="hover:bg-gray-50">
+                  <td className="py-4 px-4 text-sm text-gray-900">{booking.id}</td>
+                  <td className="py-4 px-4 text-sm">
+                    <div className="font-medium text-gray-900">{booking.customer}</div>
+                    <div className="text-gray-500 text-xs">{booking.customerEmail}</div>
+                    <div className="text-gray-500 text-xs">{booking.customerPhone}</div>
+                  </td>
+                  <td className="py-4 px-4 text-sm font-medium text-gray-900">{booking.tour}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{booking.travelDate}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{booking.persons} người</td>
+                  <td className="py-4 px-4 text-sm font-medium text-gray-900">{formatCurrency(booking.amount)}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                      booking.status === 'confirmed' 
+                        ? 'bg-green-100 text-green-800' 
+                        : booking.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                    }`}>
+                      {booking.status === 'confirmed' 
+                        ? 'Đã xác nhận'
+                        : booking.status === 'pending'
+                          ? 'Đang xử lý'
+                          : 'Đã hủy'
+                      }
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-sm text-gray-500">
+                    <div className="flex space-x-2">
+                      <Button variant="ghost" size="sm" className="px-2">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Chi tiết
+                      </Button>
+                      
+                      {booking.status === 'pending' && (
+                        <>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="px-2 text-green-600 hover:text-green-800 hover:bg-green-50"
+                            onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Xác nhận
+                          </Button>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="px-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+                            onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Hủy
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {filteredBookings.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Không tìm thấy đơn đặt tour nào phù hợp với điều kiện tìm kiếm</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 flex justify-between items-center">
+          <div className="text-xs text-gray-500">
+            Hiển thị {filteredBookings.length} của {bookings.length} đơn đặt tour
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" disabled>Trước</Button>
+            <Button variant="outline" size="sm" className="bg-primary text-white">1</Button>
+            <Button variant="outline" size="sm" disabled>Sau</Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

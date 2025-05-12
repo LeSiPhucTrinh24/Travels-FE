@@ -1,483 +1,241 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { 
   Search, 
-  MoreHorizontal, 
-  Trash2, 
-  MessageSquare,
-  Star,
-  MapPin,
-  User,
-  Calendar,
+  Filter, 
+  ArrowUpDown,
+  Star, 
   CheckCircle,
   XCircle,
-  AlertTriangle,
-  ThumbsUp
+  AlertTriangle
 } from 'lucide-react';
 
-// Sample reviews data
-const mockReviews = [
-  {
-    id: 1,
-    tourId: 1,
-    tourName: 'Vịnh Hạ Long 2 ngày 1 đêm',
-    location: 'Hạ Long, Quảng Ninh',
-    userId: 101,
-    userName: 'Nguyễn Văn A',
-    userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    rating: 5,
-    comment: 'Chuyến đi tuyệt vời! Hướng dẫn viên rất thân thiện và chuyên nghiệp. Cảnh đẹp, ăn ngon, khách sạn sạch sẽ. Tôi sẽ tiếp tục đặt tour tại đây trong tương lai.',
-    createdAt: '2025-05-01',
-    status: 'published',
-    isVerified: true,
-  },
-  {
-    id: 2,
-    tourId: 3,
-    tourName: 'Đà Nẵng - Hội An 3 ngày',
-    location: 'Đà Nẵng, Hội An',
-    userId: 102,
-    userName: 'Trần Thị B',
-    userAvatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-    rating: 4,
-    comment: 'Dịch vụ rất tốt, lịch trình hợp lý. Tuy nhiên, khách sạn có thể tốt hơn một chút. Nhìn chung tôi vẫn rất hài lòng với chuyến đi.',
-    createdAt: '2025-05-02',
-    status: 'published',
-    isVerified: true,
-  },
-  {
-    id: 3,
-    tourId: 2,
-    tourName: 'Phú Quốc - Đảo Ngọc',
-    location: 'Phú Quốc, Kiên Giang',
-    userId: 103,
-    userName: 'Lê Văn C',
-    userAvatar: 'https://randomuser.me/api/portraits/men/62.jpg',
-    rating: 5,
-    comment: 'Đây là lần thứ ba tôi đặt tour qua đây và chưa bao giờ thất vọng. Chất lượng dịch vụ luôn ổn định và đáng tin cậy.',
-    createdAt: '2025-05-03',
-    status: 'published',
-    isVerified: true,
-  },
-  {
-    id: 4,
-    tourId: 4,
-    tourName: 'Sapa - Thung lũng Mường Hoa',
-    location: 'Sapa, Lào Cai',
-    userId: 104,
-    userName: 'Phạm Văn D',
-    userAvatar: 'https://randomuser.me/api/portraits/men/22.jpg',
-    rating: 2,
-    comment: 'Dịch vụ không tốt như mong đợi. Hướng dẫn viên thiếu nhiệt tình, khách sạn không sạch sẽ. Sẽ không quay lại nữa.',
-    createdAt: '2025-05-04',
-    status: 'pending',
-    isVerified: false,
-  },
-  {
-    id: 5,
-    tourId: 5,
-    tourName: 'Đà Lạt thành phố ngàn hoa',
-    location: 'Đà Lạt, Lâm Đồng',
-    userId: 105,
-    userName: 'Hoàng Thị E',
-    userAvatar: 'https://randomuser.me/api/portraits/women/24.jpg',
-    rating: 1,
-    comment: 'Đây là một trải nghiệm tồi tệ nhất của tôi. Thời gian không hợp lý, chỗ ở quá tệ. Tôi rất thất vọng với dịch vụ này!',
-    createdAt: '2025-05-05',
-    status: 'flagged',
-    isVerified: false,
-  },
-];
-
-// Format date
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-};
-
 const ManageReviews = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [ratingFilter, setRatingFilter] = useState('all');
   
-  // Simulating API call with React Query
-  const { 
-    data: reviews = [], 
-    isLoading, 
-    isError 
-  } = useQuery({
-    queryKey: ['/api/admin/reviews'],
-    queryFn: () => Promise.resolve(mockReviews),
-    staleTime: Infinity,
+  // Mock reviews data
+  const reviews = [
+    { 
+      id: 1, 
+      customer: 'Nguyễn Văn A',
+      tourId: 1,
+      tour: 'Vịnh Hạ Long 2 ngày 1 đêm', 
+      rating: 5,
+      comment: 'Chuyến đi tuyệt vời! Hướng dẫn viên rất thân thiện và chuyên nghiệp. Cảnh đẹp, ăn ngon, khách sạn sạch sẽ. Tôi sẽ tiếp tục đặt tour tại đây trong tương lai.',
+      createdAt: '15/05/2025',
+      status: 'approved'
+    },
+    { 
+      id: 2, 
+      customer: 'Trần Thị B',
+      tourId: 2,
+      tour: 'Đà Nẵng - Hội An 3 ngày 2 đêm', 
+      rating: 4,
+      comment: 'Dịch vụ rất tốt, lịch trình hợp lý. Tuy nhiên, khách sạn có thể tốt hơn một chút. Nhìn chung tôi vẫn rất hài lòng với chuyến đi.',
+      createdAt: '14/05/2025',
+      status: 'pending'
+    },
+    { 
+      id: 3, 
+      customer: 'Lê Văn C',
+      tourId: 3,
+      tour: 'Phú Quốc 4 ngày 3 đêm', 
+      rating: 5,
+      comment: 'Đây là lần thứ ba tôi đặt tour qua đây và chưa bao giờ thất vọng. Chất lượng dịch vụ luôn ổn định và đáng tin cậy.',
+      createdAt: '12/05/2025',
+      status: 'approved'
+    },
+    { 
+      id: 4, 
+      customer: 'Phạm Thị D',
+      tourId: 5,
+      tour: 'Sapa 2 ngày 1 đêm', 
+      rating: 2,
+      comment: 'Tôi thất vọng với chuyến đi này. Lịch trình quá gấp gáp, không có thời gian tham quan kỹ. Hướng dẫn viên không nhiệt tình. Đồ ăn cũng không ngon.',
+      createdAt: '10/05/2025',
+      status: 'rejected'
+    },
+    { 
+      id: 5, 
+      customer: 'Hoàng Văn E',
+      tourId: 4,
+      tour: 'Đà Lạt 3 ngày 2 đêm', 
+      rating: 3,
+      comment: 'Chuyến đi khá ổn nhưng còn một số điểm cần cải thiện. Lịch trình hơi dày đặc và vội vàng. Hướng dẫn viên nhiệt tình nhưng đôi khi thiếu chuyên nghiệp.',
+      createdAt: '08/05/2025',
+      status: 'pending'
+    },
+  ];
+  
+  // Filter reviews based on search term and status
+  const filteredReviews = reviews.filter(review => {
+    const matchSearchTerm = 
+      review.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.tour.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.comment.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchStatus = statusFilter === 'all' || review.status === statusFilter;
+    
+    return matchSearchTerm && matchStatus;
   });
   
-  // Filter reviews based on search query, status, and rating
-  const filteredReviews = reviews.filter(
-    (review) => {
-      const matchesSearch = 
-        review.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        review.tourName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        review.comment.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = 
-        statusFilter === 'all' ||
-        review.status === statusFilter;
-      
-      const matchesRating = 
-        ratingFilter === 'all' ||
-        (ratingFilter === '5' && review.rating === 5) ||
-        (ratingFilter === '4' && review.rating === 4) ||
-        (ratingFilter === '3' && review.rating === 3) ||
-        (ratingFilter === '2' && review.rating === 2) ||
-        (ratingFilter === '1' && review.rating === 1);
-      
-      return matchesSearch && matchesStatus && matchesRating;
-    }
-  );
-  
-  // Calculate average rating
-  const averageRating = reviews.length
-    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
-    : 0;
-  
-  // Count reviews by rating
-  const ratingCounts = {
-    5: reviews.filter(r => r.rating === 5).length,
-    4: reviews.filter(r => r.rating === 4).length,
-    3: reviews.filter(r => r.rating === 3).length,
-    2: reviews.filter(r => r.rating === 2).length,
-    1: reviews.filter(r => r.rating === 1).length,
+  // Handle review approval/rejection
+  const handleReviewStatus = (reviewId, newStatus) => {
+    console.log(`Updating review ${reviewId} to status: ${newStatus}`);
+    // In a real application, this would make an API call to update the status
   };
   
-  // Handle review status update
-  const handleUpdateStatus = (id, newStatus) => {
-    console.log(`Updating review ${id} status to ${newStatus}`);
-    // In a real app, we would make an API call to update the review status
-    // and then invalidate the query to refresh the data
+  // Generate star rating display
+  const renderStars = (rating) => {
+    return (
+      <div className="flex">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            className={`h-4 w-4 ${
+              i < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    );
   };
   
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý đánh giá</h1>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant={statusFilter === 'all' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('all')}
-          >
+        
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => setStatusFilter('all')} className={statusFilter === 'all' ? 'bg-gray-100' : ''}>
             Tất cả
           </Button>
-          <Button 
-            variant={statusFilter === 'pending' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('pending')}
-          >
+          <Button variant="outline" onClick={() => setStatusFilter('pending')} className={statusFilter === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : ''}>
             Chờ duyệt
           </Button>
-          <Button 
-            variant={statusFilter === 'published' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('published')}
-          >
+          <Button variant="outline" onClick={() => setStatusFilter('approved')} className={statusFilter === 'approved' ? 'bg-green-50 text-green-700 border-green-200' : ''}>
             Đã duyệt
           </Button>
-          <Button 
-            variant={statusFilter === 'flagged' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setStatusFilter('flagged')}
-          >
-            Đã gắn cờ
+          <Button variant="outline" onClick={() => setStatusFilter('rejected')} className={statusFilter === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' : ''}>
+            Đã từ chối
           </Button>
         </div>
       </div>
       
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center w-full max-w-sm space-x-2">
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
           <Input
-            type="text"
-            placeholder="Tìm kiếm theo tên, nội dung..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9"
+            placeholder="Tìm kiếm đánh giá..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
-          <Button type="submit" size="sm" variant="ghost">
-            <Search className="h-4 w-4" />
-            <span className="sr-only">Tìm kiếm</span>
-          </Button>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">Đánh giá:</span>
-          <Button 
-            variant={ratingFilter === 'all' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setRatingFilter('all')}
-          >
-            Tất cả
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Lọc sao
           </Button>
-          {[5, 4, 3, 2, 1].map((rating) => (
-            <Button 
-              key={rating}
-              variant={ratingFilter === rating.toString() ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => setRatingFilter(rating.toString())}
-              className="gap-1"
-            >
-              {rating} <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
-            </Button>
-          ))}
+          <Button variant="outline">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Sắp xếp
+          </Button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng số đánh giá
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reviews.length}</div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <MessageSquare className="h-4 w-4 mr-1" />
-              <span>Từ {new Set(reviews.map(r => r.userId)).size} khách hàng</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đánh giá trung bình
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold flex items-center">
-              {averageRating} <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 ml-1" />
-            </div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <span>Từ {reviews.length} đánh giá</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Phân bố đánh giá
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <div key={rating} className="flex items-center text-sm">
-                  <div className="flex items-center w-16">
-                    {rating} <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 ml-1" />
-                  </div>
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full mx-2">
-                    <div
-                      className={`h-full rounded-full ${
-                        rating >= 4 
-                          ? 'bg-green-500' 
-                          : rating >= 3 
-                            ? 'bg-yellow-500' 
-                            : 'bg-red-500'
-                      }`}
-                      style={{
-                        width: `${(ratingCounts[rating] / reviews.length) * 100}%`,
-                      }}
-                    ></div>
-                  </div>
-                  <div className="w-12 text-right">{ratingCounts[rating]}</div>
+      <div className="space-y-4">
+        {filteredReviews.length > 0 ? (
+          filteredReviews.map(review => (
+            <div key={review.id} className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-gray-900">{review.customer}</h3>
+                  <div className="text-sm text-gray-500">{review.createdAt}</div>
                 </div>
-              ))}
+                <div className="flex items-center">
+                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mr-2 ${
+                    review.status === 'approved' 
+                      ? 'bg-green-100 text-green-800' 
+                      : review.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                  }`}>
+                    {review.status === 'approved' 
+                      ? 'Đã duyệt'
+                      : review.status === 'pending'
+                        ? 'Chờ duyệt'
+                        : 'Đã từ chối'
+                    }
+                  </span>
+                  {renderStars(review.rating)}
+                </div>
+              </div>
+              
+              <div className="mt-2">
+                <div className="text-sm font-medium text-gray-700">
+                  Tour: <span className="text-primary">{review.tour}</span>
+                </div>
+                <p className="mt-2 text-gray-700">{review.comment}</p>
+              </div>
+              
+              {review.status === 'pending' && (
+                <div className="mt-4 flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-green-600 hover:text-green-800 hover:bg-green-50 border-green-200"
+                    onClick={() => handleReviewStatus(review.id, 'approved')}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Duyệt
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200"
+                    onClick={() => handleReviewStatus(review.id, 'rejected')}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Từ chối
+                  </Button>
+                </div>
+              )}
+              
+              {review.status === 'rejected' && (
+                <div className="mt-4 bg-red-50 p-3 rounded-md border border-red-100">
+                  <div className="flex items-start">
+                    <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 mr-2" />
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">Lý do từ chối</h4>
+                      <p className="text-sm text-red-700">Vi phạm tiêu chuẩn cộng đồng: Đánh giá chứa thông tin tiêu cực, thiếu chính xác</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          ))
+        ) : (
+          <div className="text-center py-8 bg-white rounded-lg shadow-sm">
+            <p className="text-gray-500">Không tìm thấy đánh giá nào phù hợp với điều kiện tìm kiếm</p>
+          </div>
+        )}
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách đánh giá</CardTitle>
-          <CardDescription>
-            Quản lý tất cả các đánh giá của khách hàng
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : isError ? (
-            <div className="flex justify-center items-center h-64 text-destructive">
-              <p>Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau!</p>
-            </div>
-          ) : filteredReviews.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-              <MessageSquare className="h-12 w-12 mb-2 opacity-20" />
-              <p className="text-center">
-                {searchQuery || statusFilter !== 'all' || ratingFilter !== 'all'
-                  ? "Không tìm thấy đánh giá phù hợp"
-                  : "Chưa có đánh giá nào"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">ID</TableHead>
-                    <TableHead>Thông tin tour</TableHead>
-                    <TableHead>Khách hàng</TableHead>
-                    <TableHead>Đánh giá</TableHead>
-                    <TableHead>Nội dung</TableHead>
-                    <TableHead>Ngày đánh giá</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReviews.map((review) => (
-                    <TableRow key={review.id}>
-                      <TableCell className="font-medium">{review.id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium line-clamp-1">{review.tourName}</div>
-                          <div className="text-sm text-muted-foreground flex items-center">
-                            <MapPin className="h-3.5 w-3.5 mr-1" />
-                            {review.location}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full overflow-hidden mr-2">
-                            <img 
-                              src={review.userAvatar} 
-                              alt={review.userName}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div>
-                            <div className="font-medium">{review.userName}</div>
-                            {review.isVerified && (
-                              <div className="text-xs text-green-600 flex items-center">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Đã xác minh
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="text-lg font-medium mr-1">{review.rating}</div>
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`h-4 w-4 ${
-                                  i < review.rating 
-                                    ? 'text-yellow-500 fill-yellow-500' 
-                                    : 'text-gray-300'
-                                }`} 
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="max-w-[300px] line-clamp-2 text-sm">
-                          {review.comment}
-                        </p>
-                      </TableCell>
-                      <TableCell>{formatDate(review.createdAt)}</TableCell>
-                      <TableCell>
-                        {review.status === 'published' && (
-                          <Badge className="bg-green-500">Đã duyệt</Badge>
-                        )}
-                        {review.status === 'pending' && (
-                          <Badge variant="outline" className="text-amber-500 border-amber-500">Chờ duyệt</Badge>
-                        )}
-                        {review.status === 'flagged' && (
-                          <Badge variant="outline" className="text-red-500 border-red-500">Đã gắn cờ</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <MessageSquare className="mr-2 h-4 w-4" />
-                              <span>Xem chi tiết</span>
-                            </DropdownMenuItem>
-                            
-                            {review.status === 'pending' && (
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(review.id, 'published')}>
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                                <span>Duyệt đánh giá</span>
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {review.status !== 'flagged' && (
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(review.id, 'flagged')}>
-                                <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" />
-                                <span>Gắn cờ đánh giá</span>
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(review.id, 'deleted')} className="text-red-500">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Xóa đánh giá</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="mt-6 flex justify-between items-center">
+        <div className="text-sm text-gray-500">
+          Hiển thị {filteredReviews.length} của {reviews.length} đánh giá
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" disabled>Trước</Button>
+          <Button variant="outline" size="sm" className="bg-primary text-white">1</Button>
+          <Button variant="outline" size="sm" disabled>Sau</Button>
+        </div>
+      </div>
     </div>
   );
 };

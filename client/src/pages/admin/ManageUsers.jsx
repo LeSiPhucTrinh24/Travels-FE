@@ -1,207 +1,141 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Search, MoreHorizontal, CheckCircle, Users } from "lucide-react";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Search, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  Filter, 
+  ArrowUpDown 
+} from 'lucide-react';
 
 const ManageUsers = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Fetch users
-  const {
-    data: users = [],
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["/api/users"],
-    staleTime: Infinity,
-  });
-
-  // Filter users
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Mock users data
+  const users = [
+    { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@example.com', phone: '0912345678', isAdmin: false, status: 'active', createdAt: '12/04/2025' },
+    { id: 2, name: 'Trần Thị B', email: 'tranthib@example.com', phone: '0923456789', isAdmin: false, status: 'active', createdAt: '10/04/2025' },
+    { id: 3, name: 'Lê Văn C', email: 'levanc@example.com', phone: '0934567890', isAdmin: false, status: 'active', createdAt: '08/04/2025' },
+    { id: 4, name: 'Phạm Thị D', email: 'phamthid@example.com', phone: '0945678901', isAdmin: true, status: 'active', createdAt: '05/04/2025' },
+    { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@example.com', phone: '0956789012', isAdmin: false, status: 'inactive', createdAt: '01/04/2025' },
+  ];
+  
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.phone.includes(searchTerm)
   );
-
+  
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
-      </div>
-
-      <div className="flex items-center w-full max-w-sm space-x-2 mb-6">
-        <Input
-          type="text"
-          placeholder="Tìm kiếm người dùng..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <Button type="submit" size="icon" variant="ghost">
-          <Search className="h-4 w-4" />
-          <span className="sr-only">Tìm kiếm</span>
+        
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm người dùng
         </Button>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách người dùng</CardTitle>
-          <CardDescription>
-            Quản lý tất cả người dùng trong hệ thống
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : isError ? (
-            <div className="flex justify-center items-center h-32 text-destructive">
-              <p>Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau!</p>
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-              <Users className="h-12 w-12 mb-2 opacity-20" />
-              <p className="text-center">
-                {searchQuery
-                  ? "Không tìm thấy người dùng phù hợp"
-                  : "Chưa có người dùng nào"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">ID</TableHead>
-                    <TableHead>Họ tên</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Số điện thoại</TableHead>
-                    <TableHead>Vai trò</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white mr-2">
-                            {user.name.charAt(0)}
-                          </div>
-                          <span>{user.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.phone || "Chưa cập nhật"}</TableCell>
-                      <TableCell>
-                        {user.isAdmin ? (
-                          <Badge className="bg-primary">Quản trị viên</Badge>
-                        ) : (
-                          <Badge variant="outline">Khách hàng</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                            <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-                            <DropdownMenuItem disabled={user.isAdmin}>
-                              Đặt làm quản trị viên
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              Vô hiệu hóa tài khoản
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+      
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Input
+            placeholder="Tìm kiếm người dùng..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Lọc
+          </Button>
+          <Button variant="outline">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Sắp xếp
+          </Button>
+        </div>
+      </div>
+      
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vai trò</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="py-4 px-4 text-sm text-gray-900">{user.id}</td>
+                  <td className="py-4 px-4 text-sm font-medium text-gray-900">{user.name}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{user.email}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{user.phone}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                      user.isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {user.isAdmin ? 'Admin' : 'Khách hàng'}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-sm text-gray-500">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                      user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {user.status === 'active' ? 'Hoạt động' : 'Vô hiệu'}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{user.createdAt}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">
+                    <div className="flex space-x-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit className="h-4 w-4 text-blue-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Không tìm thấy người dùng nào phù hợp với từ khóa "{searchTerm}"</p>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng số người dùng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-              <span>{users.filter((u) => u.isAdmin).length} quản trị viên</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Người dùng mới trong tháng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <span className="text-green-500 font-medium">+20%</span>
-              <span className="ml-1">so với tháng trước</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tỷ lệ quay lại
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">65%</div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <span className="text-green-500 font-medium">+5%</span>
-              <span className="ml-1">so với tháng trước</span>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
+        
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 flex justify-between items-center">
+          <div className="text-xs text-gray-500">
+            Hiển thị {filteredUsers.length} của {users.length} người dùng
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" disabled>Trước</Button>
+            <Button variant="outline" size="sm" className="bg-primary text-white">1</Button>
+            <Button variant="outline" size="sm" disabled>Sau</Button>
+          </div>
+        </div>
       </div>
     </div>
   );
