@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { Menu, X, ChevronDown, User, LogIn, Phone, MapPin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const MainLayout = ({ children }) => {
+const MainLayout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   
@@ -153,7 +153,7 @@ const MainLayout = ({ children }) => {
       
       {/* Main content */}
       <main className="flex-1">
-        {children}
+        <Outlet />
       </main>
       
       {/* Footer */}
