@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, Users, Filter, ArrowUpDown, Star } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  MapPin, 
+  Calendar, 
+  Users, 
+  Filter, 
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Search,
+  X
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sampleTours, initializeTourWithImage } from '@/lib/mockData';
@@ -20,7 +30,7 @@ const TourCard = ({ tour, onClick }) => (
     className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
     onClick={onClick}
   >
-    <div className="h-52 overflow-hidden relative">
+    <div className="h-48 overflow-hidden relative">
       <img 
         src={tour.imageUrl} 
         alt={tour.name}
@@ -34,25 +44,17 @@ const TourCard = ({ tour, onClick }) => (
     </div>
     
     <div className="p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-bold text-lg">{tour.name}</h3>
-          <div className="flex items-center mt-1 text-gray-500 text-sm">
-            <MapPin className="h-4 w-4 mr-1" />
-            <span>{tour.location}</span>
-          </div>
-        </div>
-        <div className="flex items-center">
-          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
-          <span className="font-semibold">4.8</span>
-        </div>
+      <h3 className="font-bold text-lg mb-1">{tour.name}</h3>
+      <div className="flex items-center mb-2 text-gray-500 text-sm">
+        <MapPin className="h-4 w-4 mr-1" />
+        <span>{tour.location}</span>
       </div>
       
-      <p className="mt-3 text-gray-600 text-sm line-clamp-2">
-        {tour.description}
+      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+        {tour.description.substring(0, 100)}...
       </p>
       
-      <div className="mt-4 flex items-center justify-between">
+      <div className="flex items-center justify-between mt-auto">
         <div>
           <span className="font-bold text-lg text-primary">{formatCurrency(tour.price)}</span>
           <span className="text-gray-500 text-sm">/người</span>
@@ -66,301 +68,351 @@ const TourCard = ({ tour, onClick }) => (
 );
 
 const Tours = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialDestination = queryParams.get('destination') || '';
+  
   const [tours, setTours] = useState([]);
   const [filteredTours, setFilteredTours] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    destination: '',
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  
+  // Filter state
+  const [searchParams, setSearchParams] = useState({
+    destination: initialDestination,
     date: '',
     people: '',
-    priceRange: [0, 5000000],
-    duration: ''
+    minPrice: '',
+    maxPrice: '',
+    duration: []
   });
   
-  // Get query params from URL (if any)
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const destination = searchParams.get('destination') || '';
-    
-    setFilters(prev => ({
-      ...prev,
-      destination
-    }));
-  }, [location]);
+  // Filter options
+  const durationOptions = ['1-3 ngày', '4-7 ngày', '8-14 ngày', '15+ ngày'];
   
-  // Load tours data
+  // Fetch all tours
   useEffect(() => {
-    const loadTours = async () => {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    const fetchTours = async () => {
+      setIsLoading(true);
       
-      // Initialize tours with images
-      const initializedTours = sampleTours.map(tour => initializeTourWithImage(tour));
-      setTours(initializedTours);
-      setIsLoading(false);
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Get tours
+        const toursWithImages = sampleTours.map(tour => initializeTourWithImage(tour));
+        setTours(toursWithImages);
+        setFilteredTours(toursWithImages);
+        
+        // Apply initial filter
+        if (initialDestination) {
+          applyFilters({ ...searchParams, destination: initialDestination });
+        }
+      } catch (error) {
+        console.error('Error fetching tours:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    loadTours();
-  }, []);
+    fetchTours();
+  }, [initialDestination]);
   
-  // Apply filters to tours
-  useEffect(() => {
-    if (tours.length === 0) return;
-    
-    const filtered = tours.filter(tour => {
-      const matchDestination = !filters.destination || 
-        tour.location.toLowerCase().includes(filters.destination.toLowerCase());
-      
-      return matchDestination;
-    });
-    
-    setFilteredTours(filtered);
-  }, [tours, filters]);
-  
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
+  // Handle tour card click
   const handleTourClick = (tourId) => {
     navigate(`/tours/${tourId}`);
   };
   
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
+  // Handle filter change
+  const handleFilterChange = (name, value) => {
+    const newParams = { ...searchParams, [name]: value };
+    setSearchParams(newParams);
+  };
+  
+  // Handle duration filter change
+  const handleDurationChange = (duration) => {
+    const newDurations = [...searchParams.duration];
+    const index = newDurations.indexOf(duration);
+    
+    if (index === -1) {
+      newDurations.push(duration);
+    } else {
+      newDurations.splice(index, 1);
+    }
+    
+    handleFilterChange('duration', newDurations);
+  };
+  
+  // Apply filters
+  const applyFilters = (params = searchParams) => {
+    let results = [...tours];
+    
+    // Filter by destination
+    if (params.destination) {
+      results = results.filter(tour => 
+        tour.location.toLowerCase().includes(params.destination.toLowerCase())
+      );
+    }
+    
+    // Filter by price range
+    if (params.minPrice) {
+      results = results.filter(tour => tour.price >= parseFloat(params.minPrice));
+    }
+    
+    if (params.maxPrice) {
+      results = results.filter(tour => tour.price <= parseFloat(params.maxPrice));
+    }
+    
+    // Filter by duration
+    if (params.duration.length > 0) {
+      results = results.filter(tour => {
+        const dayCount = parseInt(tour.duration.split(' ')[0]);
+        
+        return params.duration.some(range => {
+          if (range === '1-3 ngày') return dayCount >= 1 && dayCount <= 3;
+          if (range === '4-7 ngày') return dayCount >= 4 && dayCount <= 7;
+          if (range === '8-14 ngày') return dayCount >= 8 && dayCount <= 14;
+          if (range === '15+ ngày') return dayCount >= 15;
+          return false;
+        });
+      });
+    }
+    
+    setFilteredTours(results);
+  };
+  
+  // Handle search form submit
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    applyFilters();
+  };
+  
+  // Reset filters
+  const resetFilters = () => {
+    setSearchParams({
+      destination: '',
+      date: '',
+      people: '',
+      minPrice: '',
+      maxPrice: '',
+      duration: []
+    });
+    setFilteredTours(tours);
+  };
+  
+  // Collapse/expand filters on mobile
+  const toggleFilters = () => {
+    setFiltersOpen(!filtersOpen);
+  };
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row items-start gap-6">
-        {/* Filters sidebar */}
-        <div className="w-full md:w-64 bg-white rounded-lg shadow-sm p-4 sticky top-24">
-          <h2 className="text-lg font-bold mb-4">Bộ lọc</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
-                Điểm đến
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="destination"
-                  name="destination"
-                  type="text"
-                  placeholder="Nhập địa điểm..."
-                  className="pl-10"
-                  value={filters.destination}
-                  onChange={handleFilterChange}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-                Ngày đi
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  className="pl-10"
-                  value={filters.date}
-                  onChange={handleFilterChange}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="people" className="block text-sm font-medium text-gray-700 mb-1">
-                Số người
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Users className="h-5 w-5 text-gray-400" />
-                </div>
-                <select
-                  id="people"
-                  name="people"
-                  className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={filters.people}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">Số người</option>
-                  <option value="1">1 người</option>
-                  <option value="2">2 người</option>
-                  <option value="3">3 người</option>
-                  <option value="4">4 người</option>
-                  <option value="5">5 người</option>
-                  <option value="6+">6+ người</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
-                Thời gian
-              </label>
-              <select
-                id="duration"
-                name="duration"
-                className="w-full py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                value={filters.duration}
-                onChange={handleFilterChange}
+      <h1 className="text-3xl font-bold mb-8">Tour du lịch</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Filter sidebar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center">
+                <Filter className="h-5 w-5 mr-2" />
+                Bộ lọc
+              </h2>
+              <button 
+                onClick={toggleFilters}
+                className="lg:hidden text-gray-500 hover:text-gray-700"
               >
-                <option value="">Tất cả</option>
-                <option value="1-2">1-2 ngày</option>
-                <option value="3-4">3-4 ngày</option>
-                <option value="5-7">5-7 ngày</option>
-                <option value="8+">8+ ngày</option>
-              </select>
+                {filtersOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </button>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Khoảng giá
-              </label>
-              <div className="flex items-center">
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="Min"
-                  value={filters.priceRange[0]}
-                  onChange={(e) => setFilters(prev => ({
-                    ...prev,
-                    priceRange: [parseInt(e.target.value) || 0, prev.priceRange[1]]
-                  }))}
-                  className="w-full"
-                />
-                <span className="mx-2">-</span>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="Max"
-                  value={filters.priceRange[1]}
-                  onChange={(e) => setFilters(prev => ({
-                    ...prev,
-                    priceRange: [prev.priceRange[0], parseInt(e.target.value) || 0]
-                  }))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-            
-            <Button className="w-full">
-              <Filter className="h-4 w-4 mr-2" />
-              Lọc kết quả
-            </Button>
+            {filtersOpen && (
+              <form onSubmit={handleSearchSubmit}>
+                <div className="space-y-6">
+                  {/* Destination filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Điểm đến
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MapPin className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        value={searchParams.destination}
+                        onChange={(e) => handleFilterChange('destination', e.target.value)}
+                        placeholder="Bạn muốn đi đâu?"
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Date filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ngày khởi hành
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        type="date"
+                        value={searchParams.date}
+                        onChange={(e) => handleFilterChange('date', e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* People filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số người
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Users className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <select
+                        value={searchParams.people}
+                        onChange={(e) => handleFilterChange('people', e.target.value)}
+                        className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        <option value="">Số người</option>
+                        <option value="1">1 người</option>
+                        <option value="2">2 người</option>
+                        <option value="3">3 người</option>
+                        <option value="4">4 người</option>
+                        <option value="5+">5+ người</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Price range filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Khoảng giá
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Input
+                          type="number"
+                          placeholder="Tối thiểu"
+                          value={searchParams.minPrice}
+                          onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          type="number"
+                          placeholder="Tối đa"
+                          value={searchParams.maxPrice}
+                          onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Duration filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Thời gian
+                    </label>
+                    <div className="space-y-2">
+                      {durationOptions.map((option) => (
+                        <div key={option} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`duration-${option}`}
+                            checked={searchParams.duration.includes(option)}
+                            onChange={() => handleDurationChange(option)}
+                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                          />
+                          <label htmlFor={`duration-${option}`} className="ml-2 text-gray-700">
+                            {option}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between pt-4 border-t border-gray-200">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={resetFilters}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Xóa bộ lọc
+                    </Button>
+                    <Button type="submit">
+                      <Search className="h-4 w-4 mr-2" />
+                      Lọc
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
         </div>
         
-        {/* Main content */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Danh sách tour</h1>
-            
-            <div className="flex items-center">
-              <div className="mr-4">
-                <select
-                  className="py-2 pl-3 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="popularity">Phổ biến nhất</option>
-                  <option value="price_asc">Giá: Thấp đến cao</option>
-                  <option value="price_desc">Giá: Cao đến thấp</option>
-                  <option value="rating">Đánh giá cao nhất</option>
-                </select>
-              </div>
-              
-              <Button variant="outline" size="icon">
-                <ArrowUpDown className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input 
-                placeholder="Tìm kiếm tên tour, địa điểm..." 
-                className="pl-10"
-              />
-            </div>
-          </div>
-          
-          {filteredTours.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTours.map((tour) => (
-                <TourCard 
-                  key={tour.id} 
-                  tour={tour} 
-                  onClick={() => handleTourClick(tour.id)}
-                />
-              ))}
+        {/* Tour list */}
+        <div className="lg:col-span-3">
+          {isLoading ? (
+            <div className="h-64 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-              <h3 className="text-xl font-bold mb-2">Không tìm thấy tour nào</h3>
-              <p className="text-gray-600 mb-4">
-                Không tìm thấy tour phù hợp với điều kiện tìm kiếm. Vui lòng thử lại với điều kiện khác.
-              </p>
-              <Button
-                onClick={() => setFilters({
-                  destination: '',
-                  date: '',
-                  people: '',
-                  priceRange: [0, 5000000],
-                  duration: ''
-                })}
-              >
-                Xóa bộ lọc
-              </Button>
-            </div>
+            <>
+              {/* Results info */}
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-gray-600">
+                  Hiển thị {filteredTours.length} tour
+                  {searchParams.destination && ` cho "${searchParams.destination}"`}
+                </p>
+                <div className="hidden md:block">
+                  <select 
+                    className="border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="recommended">Đề xuất</option>
+                    <option value="price-asc">Giá: Thấp đến cao</option>
+                    <option value="price-desc">Giá: Cao đến thấp</option>
+                    <option value="duration-asc">Thời gian: Ngắn đến dài</option>
+                    <option value="duration-desc">Thời gian: Dài đến ngắn</option>
+                  </select>
+                </div>
+              </div>
+              
+              {filteredTours.length === 0 ? (
+                <div className="bg-gray-50 rounded-lg p-8 text-center">
+                  <div className="mb-4 mx-auto w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                    <Search className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">Không tìm thấy tour nào</h3>
+                  <p className="text-gray-600 mb-6">
+                    Không có tour nào phù hợp với tiêu chí tìm kiếm của bạn. Vui lòng thử lại với bộ lọc khác.
+                  </p>
+                  <Button onClick={resetFilters}>
+                    Xóa bộ lọc
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredTours.map(tour => (
+                    <TourCard 
+                      key={tour.id} 
+                      tour={tour}
+                      onClick={() => handleTourClick(tour.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
-          
-          <div className="mt-8 flex justify-center">
-            <div className="inline-flex rounded-md">
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium rounded-l-md bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-              >
-                Trước
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium bg-primary text-white border border-primary"
-              >
-                1
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 border-t border-b border-gray-300"
-              >
-                2
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium rounded-r-md bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-              >
-                Sau
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
