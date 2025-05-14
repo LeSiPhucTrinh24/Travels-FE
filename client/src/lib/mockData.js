@@ -29,7 +29,7 @@ export const hotelImages = {
 export const initializeTourWithImage = (tour) => {
   // Set default image based on location keywords
   let imageUrl = "";
-  
+
   if (tour.location.toLowerCase().includes("hạ long")) {
     imageUrl = tourImages.halong;
   } else if (tour.location.toLowerCase().includes("hội an")) {
@@ -55,13 +55,14 @@ export const initializeTourWithImage = (tour) => {
 
   return {
     ...tour,
-    imageUrl
+    imageUrl,
   };
 };
 
 // Sample tours data (for initializing storage)
 export const sampleTours = [
   {
+    id: 1,
     name: "Vịnh Hạ Long 2 ngày 1 đêm",
     description: "Khám phá kỳ quan thiên nhiên thế giới với hành trình 2 ngày 1 đêm tại Vịnh Hạ Long. Tham quan hang động kỳ vĩ, tắm biển tại bãi biển hoang sơ, thưởng thức hải sản tươi ngon và ngắm hoàng hôn tuyệt đẹp trên vịnh.",
     price: 2990000,
@@ -70,6 +71,7 @@ export const sampleTours = [
     featured: true,
   },
   {
+    id: 2,
     name: "Phố cổ Hội An - Đà Nẵng",
     description: "Hành trình khám phá phố cổ Hội An - di sản văn hóa thế giới UNESCO và thành phố biển Đà Nẵng xinh đẹp. Tham quan cầu Rồng, bán đảo Sơn Trà, bãi biển Mỹ Khê và đặc biệt là phố lồng đèn Hội An về đêm.",
     price: 3500000,
@@ -78,6 +80,7 @@ export const sampleTours = [
     featured: true,
   },
   {
+    id: 3,
     name: "Sapa - Thung lũng Mường Hoa",
     description: "Hành trình chinh phục Sapa và trải nghiệm cuộc sống của đồng bào dân tộc thiểu số. Tham quan ruộng bậc thang Mường Hoa, chinh phục đỉnh Fansipan, thăm bản Cát Cát và thưởng thức ẩm thực vùng cao.",
     price: 2790000,
@@ -86,6 +89,7 @@ export const sampleTours = [
     featured: true,
   },
   {
+    id: 4,
     name: "Đà Lạt thành phố ngàn hoa",
     description: "Hành trình khám phá thành phố ngàn hoa Đà Lạt với khí hậu se lạnh quanh năm. Tham quan vườn hoa thành phố, hồ Tuyền Lâm, thung lũng Tình Yêu, và thưởng thức cà phê đặc sản tại thành phố sương mù.",
     price: 3100000,
@@ -94,6 +98,7 @@ export const sampleTours = [
     featured: true,
   },
   {
+    id: 5,
     name: "Phú Quốc - Đảo Ngọc",
     description: "Hành trình khám phá Đảo Ngọc Phú Quốc với những bãi biển cát trắng tuyệt đẹp. Tham quan Vinpearl Safari, làng chài Hàm Ninh, vườn tiêu Phú Quốc, và thưởng thức hải sản tươi ngon nhất Việt Nam.",
     price: 4200000,
@@ -102,11 +107,12 @@ export const sampleTours = [
     featured: true,
   },
   {
+    id: 6,
     name: "Nha Trang biển xanh cát trắng",
     description: "Hành trình khám phá thành phố biển Nha Trang xinh đẹp. Tham quan Vinpearl Land, tháp bà Ponagar, chùa Long Sơn, và đặc biệt là trải nghiệm tour 4 đảo tuyệt vời với các hoạt động lặn biển.",
     price: 3700000,
     duration: "4 ngày 3 đêm",
     location: "Nha Trang, Khánh Hòa",
     featured: true,
-  }
+  },
 ];

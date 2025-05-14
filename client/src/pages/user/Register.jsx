@@ -1,77 +1,74 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { FcGoogle } from 'react-icons/fc';
-import mockAuth from '@/lib/firebase';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FcGoogle } from "react-icons/fc";
+import mockAuth from "@/lib/firebase";
 
 const Register = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: ''
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    
-    // Validate password match
+    setError("");
+
+    // Kiểm tra mật khẩu khớp nhau
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.');
+      setError("Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.");
       return;
     }
-    
+
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would call an API to create a user
-      console.log('Registration data:', formData);
-      
-      // Redirect to login page after successful registration
-      navigate('/login');
+      // Giả lập gọi API
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Trong ứng dụng thực tế, sẽ gọi API để tạo tài khoản
+      console.log("Dữ liệu đăng ký:", formData);
+
+      // Chuyển hướng đến trang đăng nhập sau khi đăng ký thành công
+      navigate("/login");
     } catch (error) {
-      console.error('Registration error:', error);
-      setError('Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.');
+      console.error("Lỗi đăng ký:", error);
+      setError("Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleRegister = async () => {
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      // Using our mock Firebase auth for demo
-      // In a real implementation, we would use the actual Firebase auth
       const result = await mockAuth.signInWithGoogle();
-      
+
       if (result && result.user) {
-        console.log('Google registration successful:', result.user);
-        navigate('/');
+        console.log("Đăng ký Google thành công:", result.user);
+        navigate("/");
       } else {
-        throw new Error('Registration failed');
+        throw new Error("Đăng ký thất bại");
       }
     } catch (error) {
-      console.error('Google registration error:', error);
-      setError('Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại sau.');
+      console.error("Lỗi đăng ký Google:", error);
+      setError("Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại sau.");
     } finally {
       setIsLoading(false);
     }
@@ -82,16 +79,10 @@ const Register = () => {
       <div className="bg-white rounded-lg shadow-sm p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">Đăng ký tài khoản</h1>
-          <p className="text-gray-600">
-            Tạo tài khoản để nhận các ưu đãi đặc biệt
-          </p>
+          <p className="text-gray-600">Tạo tài khoản để nhận các ưu đãi đặc biệt</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -99,93 +90,46 @@ const Register = () => {
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Họ và tên
               </label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Nguyễn Văn A"
-              />
+              <Input id="name" name="name" type="text" required value={formData.name} onChange={handleChange} placeholder="Nguyễn Văn A" />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
               </label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="example@gmail.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Số điện thoại
-              </label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="0912345678"
-              />
+              <Input id="email" name="email" type="email" required value={formData.email} onChange={handleChange} placeholder="example@gmail.com" />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Mật khẩu
               </label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
-                minLength={6}
-              />
+              <Input id="password" name="password" type="password" required value={formData.password} onChange={handleChange} placeholder="Nhập mật khẩu (ít nhất 6 ký tự)" minLength={6} />
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 Xác nhận mật khẩu
               </label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Nhập lại mật khẩu"
-                minLength={6}
-              />
+              <Input id="confirmPassword" name="confirmPassword" type="password" required value={formData.confirmPassword} onChange={handleChange} placeholder="Nhập lại mật khẩu" minLength={6} />
             </div>
 
             <div className="flex items-start">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 mt-1 text-primary focus:ring-primary border-gray-300 rounded"
-              />
+              <input id="terms" name="terms" type="checkbox" required className="h-4 w-4 mt-1 text-primary focus:ring-primary border-gray-300 rounded" />
               <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-                Tôi đồng ý với <a href="#" className="text-primary hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-primary hover:underline">Chính sách bảo mật</a>
+                Tôi đồng ý với{" "}
+                <a href="#" className="text-primary hover:underline">
+                  Điều khoản dịch vụ
+                </a>{" "}
+                và{" "}
+                <a href="#" className="text-primary hover:underline">
+                  Chính sách bảo mật
+                </a>
               </label>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
+              {isLoading ? "Đang xử lý..." : "Đăng ký"}
             </Button>
           </div>
         </form>
@@ -196,20 +140,12 @@ const Register = () => {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
-                hoặc đăng ký với
-              </span>
+              <span className="px-2 bg-white text-gray-500">hoặc đăng ký với</span>
             </div>
           </div>
 
           <div className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleRegister}
-              disabled={isLoading}
-            >
+            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleRegister} disabled={isLoading}>
               <FcGoogle className="h-5 w-5 mr-2" />
               Google
             </Button>
@@ -217,9 +153,9 @@ const Register = () => {
         </div>
 
         <p className="text-center mt-8 text-gray-600 text-sm">
-          Đã có tài khoản?{' '}
+          Đã có tài khoản?{" "}
           <Link to="/login" className="text-primary hover:underline font-medium">
-            Đăng nhập
+            Đăng nhập ngay
           </Link>
         </p>
       </div>
