@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import UserRoutes from "./routes/UserRoutes";
 import AdminRoutes from "./routes/AdminRoutes";
 import { useAuth } from "./hooks/AuthContext";
@@ -20,22 +20,20 @@ const ProtectedAdminRoute = ({ children }) => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Admin Routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedAdminRoute>
-              <AdminRoutes />
-            </ProtectedAdminRoute>
-          }
-        />
+    <Routes>
+      {/* Admin Routes */}
+      <Route
+        path="/admin/*"
+        element={
+          <ProtectedAdminRoute>
+            <AdminRoutes />
+          </ProtectedAdminRoute>
+        }
+      />
 
-        {/* User Routes */}
-        <Route path="/*" element={<UserRoutes />} />
-      </Routes>
-    </BrowserRouter>
+      {/* User Routes */}
+      <Route path="/*" element={<UserRoutes />} />
+    </Routes>
   );
 }
 
