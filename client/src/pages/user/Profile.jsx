@@ -33,15 +33,23 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
+        const token = localStorage.getItem("token");
         setIsLoading(true);
-        const response = await axiosInstance.get("/travel/users/myInfo");
-        const data = response.data;
+
+        const response = await axiosInstance.get("/users/myInfo", {
+          headers: {
+            Authorization: `Bearer ${token}`, // đảm bảo `user.token` có chứa access token
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+        const data = response.data.result;
         setProfileData(data);
 
         // Update form with fetched data
         setProfileForm({
           name: data.fullName || "",
-          email: data.email || "",
+          email: data.userName || "",
           phone: data.phone || "",
           address: data.address || "",
           birthdate: data.dob || "",
@@ -61,7 +69,7 @@ const Profile = () => {
     if (user) {
       fetchProfileData();
     }
-  }, [user, toast]);
+  }, [user]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -105,6 +113,15 @@ const Profile = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
+    if(passwordForm.currentPassword === passwordForm.newPassword) {
+      toast({
+        title: "Mật khẩu mới không được trùng với mật khẩu cũ!",
+        description: "Mật khẩu mới và mật khẩu cũ trùng nhau",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
         title: "Mật khẩu không khớp",
@@ -115,10 +132,18 @@ const Profile = () => {
     }
 
     setIsLoading(true);
+    
     try {
-      await axiosInstance.put("/travel/users/change-password", {
-        currentPassword: passwordForm.currentPassword,
+      const userId = localStorage.getItem("userId");
+      const token = localStorage.getItem("token");
+      await axiosInstance.put(`/auth/change/${userId}`, {
+        oldPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
+        headers: {
+            Authorization: `Bearer ${token}`, // đảm bảo `user.token` có chứa access token
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
       });
 
       toast({
