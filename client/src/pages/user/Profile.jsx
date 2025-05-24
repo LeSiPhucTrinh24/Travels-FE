@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -6,18 +6,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Phone, Key, MapPin, Calendar, Image } from "lucide-react";
 import { useAuth } from "@/hooks/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import axiosInstance from "@/utils/axiosInstance";
 
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [profileData, setProfileData] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    address: "77 Nguyễn Huệ, Thành Phố Huế",
-    birthdate: "1990-01-01",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    birthdate: "",
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -25,6 +28,48 @@ const Profile = () => {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        setIsLoading(true);
+
+        const response = await axiosInstance.get("/users/myInfo", {
+          headers: {
+            Authorization: `Bearer ${token}`, // đảm bảo `user.token` có chứa access token
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+        const data = response.data.result;
+        setProfileData(data);
+
+        // Update form with fetched data
+        setProfileForm({
+          name: data.fullName || "",
+          email: data.userName || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          birthdate: data.dob || "",
+        });
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Không thể tải thông tin cá nhân. Vui lòng thử lại sau.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchProfileData();
+    }
+  }, [user]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -42,20 +87,40 @@ const Profile = () => {
     }));
   };
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      await axiosInstance.put("/travel/users/update", profileForm);
       toast({
         title: "Cập nhật thành công",
         description: "Thông tin cá nhân của bạn đã được cập nhật",
       });
       setIsEditing(false);
-    }, 1000);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể cập nhật thông tin. Vui lòng thử lại sau.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+
+    if(passwordForm.currentPassword === passwordForm.newPassword) {
+      toast({
+        title: "Mật khẩu mới không được trùng với mật khẩu cũ!",
+        description: "Mật khẩu mới và mật khẩu cũ trùng nhau",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
@@ -66,7 +131,21 @@ const Profile = () => {
       return;
     }
 
-    setTimeout(() => {
+    setIsLoading(true);
+    
+    try {
+      const userId = localStorage.getItem("userId");
+      const token = localStorage.getItem("token");
+      await axiosInstance.put(`/auth/change/${userId}`, {
+        oldPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        headers: {
+            Authorization: `Bearer ${token}`, // đảm bảo `user.token` có chứa access token
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+      });
+
       toast({
         title: "Cập nhật thành công",
         description: "Mật khẩu của bạn đã được thay đổi",
@@ -76,8 +155,27 @@ const Profile = () => {
         newPassword: "",
         confirmPassword: "",
       });
-    }, 1000);
+    } catch (error) {
+      console.error("Error changing password:", error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thay đổi mật khẩu. Vui lòng thử lại sau.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isLoading && !profileData) {
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -88,7 +186,7 @@ const Profile = () => {
           <div className="flex flex-col items-center">
             <div className="relative">
               <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-primary mb-4">
-                <img src={user?.photoURL || "https://ui-avatars.com/api/?name=User&background=random"} alt={user?.name || "User"} className="w-full h-full object-cover" />
+                <img src={profileData?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileForm.name || "User")}`} alt={profileForm.name || "User"} className="w-full h-full object-cover" />
               </div>
               <Button
                 size="icon"
@@ -104,9 +202,9 @@ const Profile = () => {
                 <Image className="h-4 w-4" />
               </Button>
             </div>
-            <h2 className="text-xl font-bold">{user?.name || "Chưa đặt tên"}</h2>
-            <p className="text-gray-500">{user?.email}</p>
-            <p className="text-sm text-gray-400 mt-1">Thành viên từ: 05/2023</p>
+            <h2 className="text-xl font-bold">{profileForm.name || "Chưa đặt tên"}</h2>
+            <p className="text-gray-500">{profileForm.email}</p>
+            <p className="text-sm text-gray-400 mt-1">Thành viên từ: {profileData?.createdAt ? new Date(profileData.createdAt).toLocaleDateString("vi-VN") : "N/A"}</p>
           </div>
 
           <Separator />
@@ -114,11 +212,11 @@ const Profile = () => {
           <div className="space-y-4">
             <div className="flex items-center text-gray-700">
               <User className="h-4 w-4 mr-2 text-gray-400" />
-              <span>{user?.name || "Chưa đặt tên"}</span>
+              <span>{profileForm.name || "Chưa đặt tên"}</span>
             </div>
             <div className="flex items-center text-gray-700">
               <Mail className="h-4 w-4 mr-2 text-gray-400" />
-              <span>{user?.email}</span>
+              <span>{profileForm.email}</span>
             </div>
             <div className="flex items-center text-gray-700">
               <Phone className="h-4 w-4 mr-2 text-gray-400" />
@@ -151,7 +249,7 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <User className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="name" name="name" value={profileForm.name} onChange={handleProfileChange} disabled={!isEditing} placeholder="Nhập họ và tên của bạn" />
+                      <Input id="name" name="name" value={profileForm.name} onChange={handleProfileChange} disabled={!isEditing || isLoading} placeholder="Nhập họ và tên của bạn" />
                     </div>
                   </div>
 
@@ -172,7 +270,7 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="phone" name="phone" value={profileForm.phone} onChange={handleProfileChange} disabled={!isEditing} placeholder="Nhập số điện thoại của bạn" />
+                      <Input id="phone" name="phone" value={profileForm.phone} onChange={handleProfileChange} disabled={!isEditing || isLoading} placeholder="Nhập số điện thoại của bạn" />
                     </div>
                   </div>
 
@@ -182,7 +280,7 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="address" name="address" value={profileForm.address} onChange={handleProfileChange} disabled={!isEditing} placeholder="Nhập địa chỉ của bạn" />
+                      <Input id="address" name="address" value={profileForm.address} onChange={handleProfileChange} disabled={!isEditing || isLoading} placeholder="Nhập địa chỉ của bạn" />
                     </div>
                   </div>
 
@@ -192,20 +290,22 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="birthdate" name="birthdate" type="date" value={profileForm.birthdate} onChange={handleProfileChange} disabled={!isEditing} />
+                      <Input id="birthdate" name="birthdate" type="date" value={profileForm.birthdate} onChange={handleProfileChange} disabled={!isEditing || isLoading} />
                     </div>
                   </div>
 
                   <div className="pt-4 flex justify-end">
                     {isEditing ? (
                       <>
-                        <Button type="button" variant="outline" onClick={() => setIsEditing(false)} className="mr-2">
+                        <Button type="button" variant="outline" onClick={() => setIsEditing(false)} className="mr-2" disabled={isLoading}>
                           Hủy
                         </Button>
-                        <Button type="submit">Lưu thay đổi</Button>
+                        <Button type="submit" disabled={isLoading}>
+                          {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                        </Button>
                       </>
                     ) : (
-                      <Button type="button" onClick={() => setIsEditing(true)}>
+                      <Button type="button" onClick={() => setIsEditing(true)} disabled={isLoading}>
                         Chỉnh sửa thông tin
                       </Button>
                     )}
@@ -223,7 +323,7 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <Key className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="currentPassword" name="currentPassword" type="password" value={passwordForm.currentPassword} onChange={handlePasswordChange} placeholder="Nhập mật khẩu hiện tại" required />
+                      <Input id="currentPassword" name="currentPassword" type="password" value={passwordForm.currentPassword} onChange={handlePasswordChange} disabled={isLoading} placeholder="Nhập mật khẩu hiện tại" required />
                     </div>
                   </div>
 
@@ -233,7 +333,7 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <Key className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="newPassword" name="newPassword" type="password" value={passwordForm.newPassword} onChange={handlePasswordChange} placeholder="Nhập mật khẩu mới" required minLength={6} />
+                      <Input id="newPassword" name="newPassword" type="password" value={passwordForm.newPassword} onChange={handlePasswordChange} disabled={isLoading} placeholder="Nhập mật khẩu mới" required minLength={6} />
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Mật khẩu phải có ít nhất 6 ký tự</p>
                   </div>
@@ -244,12 +344,14 @@ const Profile = () => {
                     </label>
                     <div className="flex items-center">
                       <Key className="h-4 w-4 mr-2 text-gray-400" />
-                      <Input id="confirmPassword" name="confirmPassword" type="password" value={passwordForm.confirmPassword} onChange={handlePasswordChange} placeholder="Nhập lại mật khẩu mới" required minLength={6} />
+                      <Input id="confirmPassword" name="confirmPassword" type="password" value={passwordForm.confirmPassword} onChange={handlePasswordChange} disabled={isLoading} placeholder="Nhập lại mật khẩu mới" required minLength={6} />
                     </div>
                   </div>
 
                   <div className="pt-4 flex justify-end">
-                    <Button type="submit">Đổi mật khẩu</Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? "Đang xử lý..." : "Đổi mật khẩu"}
+                    </Button>
                   </div>
                 </div>
               </form>

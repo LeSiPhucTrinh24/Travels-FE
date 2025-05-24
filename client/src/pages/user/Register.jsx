@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FcGoogle } from "react-icons/fc";
 import mockAuth from "@/lib/firebase";
+import axios from "axios";
 
 const Register = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    fullName: "",
+    userName: "",
     password: "",
     confirmPassword: "",
   });
@@ -28,11 +29,15 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
+    const {fullName, userName, password} = formData;
+
     // Kiểm tra mật khẩu khớp nhau
     if (formData.password !== formData.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.");
       return;
     }
+
+    const {data} = await axios.post("http://localhost:8080/travel/auth/register", {fullName, userName, password})
 
     setIsLoading(true);
 
@@ -87,17 +92,17 @@ const Register = () => {
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
                 Họ và tên
               </label>
-              <Input id="name" name="name" type="text" required value={formData.name} onChange={handleChange} placeholder="Nguyễn Văn A" />
+              <Input id="fullName" name="fullName" type="text" required value={formData.fullName} onChange={handleChange} placeholder="Nguyễn Văn A" />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+              <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
+                userName
               </label>
-              <Input id="email" name="email" type="email" required value={formData.email} onChange={handleChange} placeholder="example@gmail.com" />
+              <Input id="userName" name="userName" type="userName" required value={formData.userName} onChange={handleChange} placeholder="example@gmail.com" />
             </div>
 
             <div>

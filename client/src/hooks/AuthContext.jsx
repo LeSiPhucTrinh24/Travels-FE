@@ -1,46 +1,93 @@
-// src/contexts/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    // Check if user data exists in localStorage
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+// Separate component to handle navigation and toast
+const AuthProviderContent = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Update localStorage whenever user state changes
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error("Error parsing saved user:", error);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     }
-  }, [user]);
+    setIsLoading(false);
+  }, []);
 
   const login = (userData) => {
     setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/login");
+    toast({
+      title: "Đăng xuất thành công",
+      description: "Bạn đã đăng xuất khỏi hệ thống",
+    });
   };
 
-  // Helper function to check if user is admin
-  const isAdmin = () => {
-    return user?.role === "admin";
+  // Utility functions for role checking
+  const hasRole = (role) => {
+    if (!user?.roles || !Array.isArray(user.roles)) return false;
+    return user.roles.some((r) => r.toLowerCase() === role.toLowerCase());
   };
 
-  // Helper function to check if user is logged in
-  const isAuthenticated = () => {
-    return !!user;
+  const isAdmin = () => hasRole("admin");
+  const isUser = () => hasRole("user");
+
+  // Function to check if user has required role
+  const requireRole = (role) => {
+    if (!user) {
+      navigate("/login");
+      return false;
+    }
+    if (!hasRole(role)) {
+      toast({
+        variant: "destructive",
+        title: "Không có quyền truy cập",
+        description: "Bạn không có quyền truy cập trang này",
+      });
+      navigate("/");
+      return false;
+    }
+    return true;
   };
 
-  return <AuthContext.Provider value={{ user, login, logout, isAdmin, isAuthenticated }}>{children}</AuthContext.Provider>;
+  const value = {
+    user,
+    login,
+    logout,
+    isLoading,
+    hasRole,
+    isAdmin,
+    isUser,
+    requireRole,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Hook tiện dùng
+// Wrapper component that doesn't use hooks
+export const AuthProvider = ({ children }) => {
+  return <AuthProviderContent>{children}</AuthProviderContent>;
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

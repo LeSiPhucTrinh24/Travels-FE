@@ -1,6 +1,5 @@
 // Mock data for tours
 export const tourImages = {
-  halong: "https://pixabay.com/get/ge4973f85cd106a8a173163f1242a1073aef3798a97bc1bfd23a4503edf015394c990cf64bbaa4a2cf537934519f0e7759150ed3bb0c552b963022009083d4eee_1280.jpg",
   hoian: "https://images.unsplash.com/photo-1555921015-5532091f6026?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500",
   sapa: "https://images.unsplash.com/photo-1528181304800-259b08848526?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500",
   danang: "https://images.unsplash.com/photo-1559628233-100c798642d4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500",

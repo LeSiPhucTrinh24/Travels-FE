@@ -1,49 +1,30 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FcGoogle } from "react-icons/fc";
-import mockAuth from "@/lib/firebase";
 import { useAuth } from "@/hooks/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-// Tài khoản demo để test
-const DEMO_ACCOUNTS = {
-  // Tài khoản quản trị viên
-  admin: {
-    email: "admin@gmail.com",
-    password: "admin123",
-    userData: {
-      id: "admin-1",
-      name: "Admin",
-      email: "admin@gmail.com",
-      role: "admin", // Phân quyền admin
-      photoURL: "https://ui-avatars.com/api/?name=Admin&background=random",
-    },
-  },
-  // Tài khoản người dùng thông thường
-  user: {
-    email: "lesiphuctrinh@gmail.com",
-    password: "123456",
-    userData: {
-      id: "user-1",
-      name: "Lê Sĩ Phúc Trình",
-      email: "lesiphuctrinh@gmail.com",
-      role: "user", // Phân quyền user thường
-      photoURL: "https://ui-avatars.com/api/?name=John+Doe&background=random",
-    },
-  },
-};
+import { AppContext } from "@/context/AppContext";
+import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { toast } = useToast();
+  const { backendUrl } = useContext(AppContext);
+
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
+    userName: "",
     password: "",
   });
+
+  // Hàm kiểm tra role (không phân biệt chữ hoa thường)
+  const hasRole = (userRoles, role) => {
+    if (!userRoles || !Array.isArray(userRoles)) return false;
+    return userRoles.some((r) => r.toLowerCase() === role.toLowerCase());
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,45 +37,84 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      // Giả lập delay gọi API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await axios.post(
+        `${backendUrl}/auth/login`,
+        {
+          userName: formData.userName,
+          password: formData.password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          // Nếu backend dùng cookie thì giữ withCredentials
+          // withCredentials: true,
+        }
+      );
 
-      // Kiểm tra tài khoản admin
-      if (formData.email === DEMO_ACCOUNTS.admin.email && formData.password === DEMO_ACCOUNTS.admin.password) {
-        login(DEMO_ACCOUNTS.admin.userData);
-        toast({
-          title: "Đăng nhập thành công",
-          description: "Chào mừng Admin quay trở lại!",
-        });
+      const data = response.data.result || response.data; // phụ thuộc backend trả về
+
+      // Lưu token vào localStorage
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.userId);
+      }
+
+      // Chuẩn bị thông tin user để lưu vào context
+      const userData = {
+        id: data.userId || null,
+        name: data.fullName || "",
+        userName: data.userName || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        roles: Array.isArray(data.roles) ? data.roles : [],
+      };
+      
+      // Gọi hàm login lưu user vào context
+      login(userData);
+
+      toast({
+        title: "Đăng nhập thành công",
+        description: `Chào mừng ${userData.name || userData.userName}!`,
+      });
+
+      // Điều hướng theo vai trò
+      if (hasRole(userData.roles, "ADMIN")) {
         navigate("/admin");
-        return;
-      }
-
-      // Kiểm tra tài khoản user thường
-      if (formData.email === DEMO_ACCOUNTS.user.email && formData.password === DEMO_ACCOUNTS.user.password) {
-        login(DEMO_ACCOUNTS.user.userData);
-        toast({
-          title: "Đăng nhập thành công",
-          description: "Chào mừng bạn quay trở lại!",
-        });
+      } else if (hasRole(userData.roles, "USER")) {
         navigate("/");
-        return;
+      } else {
+        navigate("/");
       }
-
-      toast({
-        variant: "destructive",
-        title: "Đăng nhập thất bại",
-        description: "Email hoặc mật khẩu không chính xác. Vui lòng thử lại.",
-      });
     } catch (error) {
-      console.error("Lỗi đăng nhập:", error);
-      toast({
-        variant: "destructive",
-        title: "Đăng nhập thất bại",
-        description: "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.",
-      });
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || "Tài khoản hoặc mật khẩu không đúng.";
+
+        if (status === 401) {
+          toast({
+            variant: "destructive",
+            title: "Không được phép",
+            description: "Tài khoản hoặc mật khẩu không chính xác.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: `Lỗi ${status}`,
+            description: message,
+          });
+        }
+        console.error("Chi tiết lỗi:", error.response.data);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Lỗi không xác định",
+          description: error.message || "Không thể kết nối đến máy chủ.",
+        });
+        console.error("Lỗi không xác định:", error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -102,17 +122,15 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-
     try {
+      // Giả lập Google Auth nếu chưa tích hợp thật
       const result = await mockAuth.signInWithGoogle();
-
       if (result && result.user) {
         const userData = {
           id: result.user.uid,
           name: result.user.displayName,
           email: result.user.email,
-          role: "user",
-          photoURL: result.user.photoURL,
+          roles: ["USER"], // giả lập role USER
         };
         login(userData);
         toast({
@@ -146,10 +164,10 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+              <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
+                Tên đăng nhập
               </label>
-              <Input id="email" name="email" type="email" required value={formData.email} onChange={handleChange} placeholder="Nhập email của bạn" />
+              <Input id="userName" name="userName" type="text" required value={formData.userName} onChange={handleChange} placeholder="Nhập tên đăng nhập hoặc email" />
             </div>
 
             <div>
