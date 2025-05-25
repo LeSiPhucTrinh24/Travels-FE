@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,6 +147,7 @@ const ManageCategories = () => {
     }
   };
 
+
   const filteredCategories = categories.filter((category) => (category.tourTypeName || "").toLowerCase().includes(searchTerm.toLowerCase()));
   console.log("filteredCategories: ", filteredCategories);
 
@@ -162,6 +164,7 @@ const ManageCategories = () => {
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+
           <Input placeholder="Tìm kiếm loại tour..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" disabled={isLoading} />
         </div>
       </div>
@@ -195,6 +198,7 @@ const ManageCategories = () => {
                         <Edit className="h-4 w-4 text-blue-500" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(category.tourTypeId)} disabled={isLoading}>
+
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -215,12 +219,14 @@ const ManageCategories = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tên loại tour</label>
               <Input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="Nhập tên loại tour" required disabled={isLoading} />
+
             </div>
             <div className="flex justify-end space-x-4">
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Đang xử lý..." : selectedCategory ? "Cập nhật" : "Thêm mới"}
               </Button>
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={isLoading}>
+
                 Hủy
               </Button>
             </div>

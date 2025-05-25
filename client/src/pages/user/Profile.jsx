@@ -132,7 +132,6 @@ const Profile = () => {
     }
 
     setIsLoading(true);
-
     try {
       const userId = localStorage.getItem("userId");
       const token = localStorage.getItem("token");
