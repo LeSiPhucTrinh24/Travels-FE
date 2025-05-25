@@ -113,7 +113,7 @@ const Profile = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
-    if(passwordForm.currentPassword === passwordForm.newPassword) {
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
       toast({
         title: "Mật khẩu mới không được trùng với mật khẩu cũ!",
         description: "Mật khẩu mới và mật khẩu cũ trùng nhau",
@@ -132,7 +132,6 @@ const Profile = () => {
     }
 
     setIsLoading(true);
-    
     try {
       const userId = localStorage.getItem("userId");
       const token = localStorage.getItem("token");
@@ -140,9 +139,9 @@ const Profile = () => {
         oldPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
         headers: {
-            Authorization: `Bearer ${token}`, // đảm bảo `user.token` có chứa access token
-            "Content-Type": "application/json",
-            Accept: "application/json",
+          Authorization: `Bearer ${token}`, // đảm bảo `user.token` có chứa access token
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
       });
 

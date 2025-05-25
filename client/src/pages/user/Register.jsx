@@ -29,7 +29,7 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
-    const {fullName, userName, password} = formData;
+    const { fullName, userName, password } = formData;
 
     // Kiểm tra mật khẩu khớp nhau
     if (formData.password !== formData.confirmPassword) {
@@ -37,7 +37,7 @@ const Register = () => {
       return;
     }
 
-    const {data} = await axios.post("http://localhost:8080/travel/auth/register", {fullName, userName, password})
+    const { data } = await axios.post("http://localhost:8080/travel/auth/register", { fullName, userName, password });
 
     setIsLoading(true);
 
