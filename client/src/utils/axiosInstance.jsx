@@ -35,7 +35,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         // Try to refresh token
-        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/refresh-token`, {}, { withCredentials: true });
+        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/refresh`, {}, { withCredentials: true });
 
         const { accessToken } = response.data;
         localStorage.setItem("token", accessToken);
@@ -44,10 +44,15 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, logout user
+        // If refresh token fails, clear auth data
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "/login";
+
+        // Only redirect to login if not already on login page and not on admin page
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes("/login") && !currentPath.includes("/admin")) {
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       }
     }
@@ -56,8 +61,10 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 403) {
       // Handle forbidden access
       console.error("Access forbidden:", error.response.data);
-      // Redirect to home page if access is forbidden
-      window.location.href = "/";
+      // Only redirect if not on admin page
+      if (!window.location.pathname.includes("/admin")) {
+        window.location.href = "/";
+      }
     }
 
     return Promise.reject(error);

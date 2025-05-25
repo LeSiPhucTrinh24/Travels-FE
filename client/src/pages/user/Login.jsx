@@ -63,6 +63,7 @@ const Login = () => {
       // Lưu token vào localStorage
       if (data.token) {
         localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.userId);
       }
 
       // Chuẩn bị thông tin user để lưu vào context
@@ -72,14 +73,16 @@ const Login = () => {
         userName: data.userName || "",
         phone: data.phone || "",
         address: data.address || "",
+        dob: data.dob || "",
+        avatar: data.avatar || "",
         roles: Array.isArray(data.roles) ? data.roles : [],
       };
 
       // Log dữ liệu userData và roles sau khi chuẩn hóa
-      console.log("userData:", userData);
-      console.log("userData.roles:", userData.roles);
-      console.log("isAdmin:", hasRole(userData.roles, "ADMIN"));
-      console.log("isUser:", hasRole(userData.roles, "USER"));
+      // console.log("userData:", userData);
+      // console.log("userData.roles:", userData.roles);
+      // console.log("isAdmin:", hasRole(userData.roles, "ADMIN"));
+      // console.log("isUser:", hasRole(userData.roles, "USER"));
 
       // Gọi hàm login lưu user vào context
       login(userData);

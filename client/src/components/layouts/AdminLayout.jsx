@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Map, Users, BookOpen, MessageSquare, LogOut, Menu, X, ChevronDown, User, BarChart3, FolderTree, MapPin, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 // Menu items for the sidebar
 const menuItems = [
@@ -57,6 +59,8 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const { logout } = useAuth();
+  const { toast } = useToast();
 
   // Toggle sidebar on mobile
   const toggleSidebar = () => {
@@ -64,10 +68,18 @@ const AdminLayout = () => {
   };
 
   // Handle logout
-  const handleLogout = () => {
-    // Giả lập đăng xuất và chuyển hướng về trang login
-    console.log("Logging out...");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsProfileMenuOpen(false);
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi đăng xuất",
+        description: "Đã xảy ra lỗi khi đăng xuất. Vui lòng thử lại sau.",
+      });
+    }
   };
 
   return (
