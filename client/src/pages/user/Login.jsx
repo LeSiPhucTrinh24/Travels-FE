@@ -56,10 +56,6 @@ const Login = () => {
 
       const data = response.data.result || response.data; // phụ thuộc backend trả về
 
-      // Log dữ liệu trả về từ backend
-      console.log("Login response:", data);
-      console.log("Roles from backend:", data.roles);
-
       // Lưu token vào localStorage
       if (data.token) {
         localStorage.setItem("token", data.token);
