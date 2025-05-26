@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Edit, Trash2, Eye, Filter, ArrowUpDown } from "lucide-react";
 import AdminTourDetail from "./AdminTourDetail";
 import { toast } from "react-toastify";
+import axiosInstance from "@/utils/axiosInstance";
 
 // Format currency
 const formatCurrency = (value) => {
@@ -20,21 +21,54 @@ const ManageTours = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState(null);
+  const [tours, setTours] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
 
-  // Mock tours data
-  const [tours, setTours] = useState([
-    { id: 1, name: "Vịnh Hạ Long 2 ngày 1 đêm", location: "Hạ Long", price: 1790000, duration: "2 ngày 1 đêm", featured: true, status: "active" },
-    { id: 2, name: "Đà Nẵng - Hội An 3 ngày 2 đêm", location: "Đà Nẵng", price: 2590000, duration: "3 ngày 2 đêm", featured: true, status: "active" },
-    { id: 3, name: "Phú Quốc 4 ngày 3 đêm", location: "Phú Quốc", price: 3490000, duration: "4 ngày 3 đêm", featured: false, status: "active" },
-    { id: 4, name: "Đà Lạt 3 ngày 2 đêm", location: "Đà Lạt", price: 2190000, duration: "3 ngày 2 đêm", featured: true, status: "active" },
-    { id: 5, name: "Sapa 2 ngày 1 đêm", location: "Sapa", price: 1490000, duration: "2 ngày 1 đêm", featured: false, status: "inactive" },
-    { id: 6, name: "Nha Trang 3 ngày 2 đêm", location: "Nha Trang", price: 2290000, duration: "3 ngày 2 đêm", featured: false, status: "active" },
-    { id: 7, name: "Huế - Đà Nẵng - Hội An 4 ngày 3 đêm", location: "Huế", price: 3190000, duration: "4 ngày 3 đêm", featured: false, status: "active" },
-  ]);
+  // Fetch tours on component mount
+  useEffect(() => {
+    fetchTours();
+    fetchCategories();
+  }, []);
 
-  const handleViewDetail = (tour) => {
-    setSelectedTour(tour);
-    setIsDetailOpen(true);
+  const fetchTours = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.get("/tours");
+      setTours(response.data.result);
+    } catch (error) {
+      console.error("Error fetching tours:", error);
+      toast.error("Không thể tải danh sách tour. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const response = await axiosInstance.get(`/tourTypes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+      setCategories(response.data.result || []);
+    } catch (error) {
+      // ignore
+    }
+  };
+
+  const handleViewDetail = async (tour) => {
+    try {
+      const response = await axiosInstance.get(`/tours/${tour.tourId}`);
+      setSelectedTour(response.data.result);
+      setIsDetailOpen(true);
+    } catch (error) {
+      toast.error("Không thể tải chi tiết tour");
+    }
   };
 
   const handleCloseDetail = () => {
@@ -42,25 +76,57 @@ const ManageTours = () => {
     setIsDetailOpen(false);
   };
 
-  const handleDelete = (tourId) => {
+  const handleDelete = async (tourId) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa tour này?")) {
-      setTours(tours.filter((tour) => tour.id !== tourId));
-      toast.success("Xóa tour thành công");
+      try {
+        await axiosInstance.delete(`/tours/${tourId}`);
+        setTours(tours.filter((tour) => tour.tourId !== tourId));
+        toast.success("Xóa tour thành công");
+      } catch (error) {
+        console.error("Error deleting tour:", error);
+        toast.error("Không thể xóa tour. Vui lòng thử lại sau.");
+      }
     }
   };
 
-  const handleToggleStatus = (tourId) => {
-    setTours(tours.map((tour) => (tour.id === tourId ? { ...tour, status: tour.status === "active" ? "inactive" : "active" } : tour)));
-    toast.success("Trạng thái tour đã được cập nhật!");
+  const handleToggleStatus = async (tourId) => {
+    try {
+      const tour = tours.find((t) => t.tourId === tourId);
+      const updatedTour = { ...tour, status: tour.status === "active" ? "inactive" : "active" };
+
+      await axiosInstance.put(`/tours/${tourId}`, updatedTour);
+      setTours(tours.map((t) => (t.tourId === tourId ? updatedTour : t)));
+      toast.success("Trạng thái tour đã được cập nhật!");
+    } catch (error) {
+      console.error("Error updating tour status:", error);
+      toast.error("Không thể cập nhật trạng thái tour. Vui lòng thử lại sau.");
+    }
   };
 
-  const handleToggleFeatured = (tourId) => {
-    setTours(tours.map((tour) => (tour.id === tourId ? { ...tour, featured: !tour.featured } : tour)));
-    toast.success("Đã cập nhật trạng thái nổi bật của tour!");
+  const handleToggleFeatured = async (tourId) => {
+    try {
+      const tour = tours.find((t) => t.tourId === tourId);
+      const updatedTour = { ...tour, featured: !tour.featured };
+
+      await axiosInstance.put(`/tours/${tourId}`, updatedTour);
+      setTours(tours.map((t) => (t.tourId === tourId ? updatedTour : t)));
+      toast.success("Đã cập nhật trạng thái nổi bật của tour!");
+    } catch (error) {
+      console.error("Error updating tour featured status:", error);
+      toast.error("Không thể cập nhật trạng thái nổi bật. Vui lòng thử lại sau.");
+    }
   };
 
   // Filter tours based on search term
   const filteredTours = tours.filter((tour) => tour.name.toLowerCase().includes(searchTerm.toLowerCase()) || tour.location.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -98,9 +164,10 @@ const ManageTours = () => {
           <table className="w-full border-collapse">
             <thead className="bg-gray-50">
               <tr>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ảnh tour</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên tour</th>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa điểm</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày khởi hành</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nổi bật</th>
@@ -109,18 +176,19 @@ const ManageTours = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredTours.map((tour) => (
-                <tr key={tour.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetail(tour)}>
-                  <td className="py-4 px-4 text-sm text-gray-900">{tour.id}</td>
+              {filteredTours.map((tour, idx) => (
+                <tr key={tour.tourId} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetail(tour)}>
+                  <td className="py-4 px-4 text-sm text-gray-900">{idx + 1}</td>
+                  <td className="py-4 px-4 text-sm">{tour.coverImage && <img src={tour.coverImage} alt={tour.name} className="w-20 h-14 object-cover rounded" />}</td>
                   <td className="py-4 px-4 text-sm font-medium text-gray-900">{tour.name}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{tour.location}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{tour.departureDate ? new Date(tour.departureDate).toLocaleDateString("vi-VN") : ""}</td>
                   <td className="py-4 px-4 text-sm text-gray-900 font-medium">{formatCurrency(tour.price)}</td>
                   <td className="py-4 px-4 text-sm text-gray-500">{tour.duration}</td>
                   <td className="py-4 px-4 text-sm text-gray-500">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleToggleFeatured(tour.id);
+                        handleToggleFeatured(tour.tourId);
                       }}
                       className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${tour.featured ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}
                     >
@@ -131,11 +199,11 @@ const ManageTours = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleToggleStatus(tour.id);
+                        handleToggleStatus(tour.tourId);
                       }}
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${tour.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${tour.status === true || tour.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                     >
-                      {tour.status === "active" ? "Hoạt động" : "Dừng hoạt động"}
+                      {tour.status === true || tour.status === "active" ? "Hoạt động" : "Dừng hoạt động"}
                     </button>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-500">
@@ -143,10 +211,10 @@ const ManageTours = () => {
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetail(tour)}>
                         <Eye className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin/tours/edit/${tour.id}`)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin/tours/edit/${tour.tourId}`)}>
                         <Edit className="h-4 w-4 text-blue-500" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(tour.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(tour.tourId)}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -181,7 +249,7 @@ const ManageTours = () => {
         </div>
       </div>
 
-      {selectedTour && <AdminTourDetail tour={selectedTour} isOpen={isDetailOpen} onClose={handleCloseDetail} />}
+      {selectedTour && <AdminTourDetail tour={selectedTour} isOpen={isDetailOpen} onClose={handleCloseDetail} categories={categories} />}
     </div>
   );
 };

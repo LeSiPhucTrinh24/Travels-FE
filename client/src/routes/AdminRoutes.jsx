@@ -20,7 +20,7 @@ export default function AdminRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="tours" element={<AdminTours />} />
         <Route path="tours/add" element={<AdminTourForm />} />
-        <Route path="tours/edit/:id" element={<AdminTourForm isEditing />} />
+        <Route path="tours/edit/:tourId" element={<AdminTourForm isEditing />} />
         <Route path="tours/:id/images" element={<AdminTourImageForm />} />
         <Route path="categories" element={<AdminCategories />} />
         <Route path="destinations" element={<AdminDestinations />} />
