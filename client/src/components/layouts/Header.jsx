@@ -5,14 +5,31 @@ import { Menu, X, LogIn, ChevronDown, User, History, LogOut } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import axiosInstance from "@/utils/axiosInstance";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [userAvatar, setUserAvatar] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
   const { toast } = useToast();
+
+  // Fetch user avatar
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      if (user) {
+        try {
+          const response = await axiosInstance.get("/users/myInfo");
+          setUserAvatar(response.data.result.avatar);
+        } catch (error) {
+          console.error("Error fetching user avatar:", error);
+        }
+      }
+    };
+    fetchUserAvatar();
+  }, [user]);
 
   const isActive = (path) => {
     return path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -125,7 +142,7 @@ const Header = () => {
             {user ? (
               <div className="relative profile-dropdown">
                 <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center space-x-3 text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                  <img src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+                  <img src={userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}`} alt={user.name || "User"} className="w-8 h-8 rounded-full object-cover border border-gray-200" />
                   <span>{user.name}</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
                 </button>
@@ -167,7 +184,7 @@ const Header = () => {
                   <>
                     <div className="px-3 py-2 mb-2">
                       <div className="flex items-center">
-                        <img src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`} alt={user.name} className="w-8 h-8 rounded-full mr-3" />
+                        <img src={userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}`} alt={user.name || "User"} className="w-8 h-8 rounded-full mr-3 object-cover border border-gray-200" />
                         <span className="text-sm font-medium text-gray-900">{user.name}</span>
                       </div>
                     </div>
