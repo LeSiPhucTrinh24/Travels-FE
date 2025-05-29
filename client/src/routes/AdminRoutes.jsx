@@ -5,6 +5,8 @@ import AdminTours from "@/pages/admin/AdminTours";
 import AdminCategories from "@/pages/admin/AdminCategories";
 import AdminDestinations from "@/pages/admin/AdminDestinations";
 import AdminItineraries from "@/pages/admin/AdminItineraries";
+import AdminItineraryForm from "@/pages/admin/AdminItineraryForm";
+import AdminItineraryDetail from "@/pages/admin/AdminItineraryDetail";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminUserForm from "@/pages/admin/AdminUserForm";
 import AdminTourForm from "@/pages/admin/AdminTourForm";
@@ -25,6 +27,9 @@ export default function AdminRoutes() {
         <Route path="categories" element={<AdminCategories />} />
         <Route path="destinations" element={<AdminDestinations />} />
         <Route path="itineraries" element={<AdminItineraries />} />
+        <Route path="itineraries/add" element={<AdminItineraryForm />} />
+        <Route path="itineraries/edit/:itineraryId" element={<AdminItineraryForm />} />
+        <Route path="itineraries/:itineraryId" element={<AdminItineraryDetail />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="users/add" element={<AdminUserForm />} />
         <Route path="users/edit/:id" element={<AdminUserForm isEditing />} />
