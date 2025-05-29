@@ -92,7 +92,18 @@ const Profile = () => {
     setIsLoading(true);
 
     try {
-      await axiosInstance.put("/travel/users/update", profileForm);
+      const userId = localStorage.getItem("userId");
+      const token = localStorage.getItem("token");
+      await axiosInstance.put(`/users/${userId}`, 
+        { profileForm },
+        { 
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
       toast({
         title: "Cập nhật thành công",
         description: "Thông tin cá nhân của bạn đã được cập nhật",
