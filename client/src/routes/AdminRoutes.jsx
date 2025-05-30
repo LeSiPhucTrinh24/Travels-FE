@@ -27,7 +27,7 @@ export default function AdminRoutes() {
         <Route path="itineraries" element={<AdminItineraries />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="users/add" element={<AdminUserForm />} />
-        <Route path="users/edit/:id" element={<AdminUserForm isEditing />} />
+        <Route path="users/edit/:userId" element={<AdminUserForm isEditing />} />
         <Route path="bookings" element={<AdminBookings />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="reports" element={<Reports />} />

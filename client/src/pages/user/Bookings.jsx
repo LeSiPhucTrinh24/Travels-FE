@@ -5,66 +5,9 @@ import { Calendar, MapPin, User, CreditCard, Clock, Search, ChevronDown, Chevron
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Sample bookings data
-const mockBookings = [
-  {
-    id: 1,
-    tourId: 1,
-    tourName: "Vịnh Hạ Long 2 ngày 1 đêm",
-    location: "Hạ Long, Quảng Ninh",
-    imageUrl: "https://images.unsplash.com/photo-1528127269322-539801943592?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300",
-    bookingDate: "2025-05-01",
-    travelDate: "2025-06-15",
-    numTravelers: 2,
-    totalAmount: 5980000,
-    status: "confirmed",
-    paymentMethod: "credit_card",
-    paymentStatus: "paid",
-  },
-  {
-    id: 2,
-    tourId: 3,
-    tourName: "Đà Nẵng - Hội An 3 ngày",
-    location: "Đà Nẵng, Hội An",
-    imageUrl: "https://images.unsplash.com/photo-1540998871672-38471ce50502?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300",
-    bookingDate: "2025-05-02",
-    travelDate: "2025-06-20",
-    numTravelers: 3,
-    totalAmount: 7500000,
-    status: "pending",
-    paymentMethod: "bank_transfer",
-    paymentStatus: "pending",
-  },
-  {
-    id: 3,
-    tourId: 2,
-    tourName: "Phú Quốc - Đảo Ngọc",
-    location: "Phú Quốc, Kiên Giang",
-    imageUrl: "https://images.unsplash.com/photo-1582650406001-2a25e70c6f0f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300",
-    bookingDate: "2025-05-03",
-    travelDate: "2025-07-01",
-    numTravelers: 4,
-    totalAmount: 8400000,
-    status: "confirmed",
-    paymentMethod: "credit_card",
-    paymentStatus: "paid",
-  },
-  {
-    id: 4,
-    tourId: 4,
-    tourName: "Sapa - Thung lũng Mường Hoa",
-    location: "Sapa, Lào Cai",
-    imageUrl: "https://images.unsplash.com/photo-1577440708692-ab186b6bb00a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=300",
-    bookingDate: "2025-05-04",
-    travelDate: "2025-06-25",
-    numTravelers: 2,
-    totalAmount: 5580000,
-    status: "cancelled",
-    paymentMethod: "credit_card",
-    paymentStatus: "refunded",
-  },
-];
+import axiosInstance from "@/utils/axiosInstance";
+import { useAuth } from "@/hooks/AuthContext";
+import { toast } from "react-toastify";
 
 // Format currency
 const formatCurrency = (value) => {
@@ -77,12 +20,19 @@ const formatCurrency = (value) => {
 
 // Format date
 const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    // Use padStart to ensure day and month are two digits
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth() is 0-indexed
+    const year = date.getFullYear();
+    // Format as DD/MM/YYYY
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString; // Return original string if formatting fails
+  }
 };
 
 const BookingStatus = ({ status }) => {
@@ -124,19 +74,36 @@ const Bookings = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedBookingId, setExpandedBookingId] = useState(null);
+  const { user } = useAuth();
 
-  // Simulating API call with React Query
-  const { data: bookings = [], isLoading } = useQuery({
-    queryKey: ["/api/user/bookings"],
-    queryFn: () => Promise.resolve(mockBookings),
-    staleTime: Infinity,
+  // Fetch bookings from API
+  const {
+    data: bookings = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["userBookings", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      try {
+        const response = await axiosInstance.get(`/booking/user/${user.id}`);
+        return response.data.result || [];
+      } catch (error) {
+        console.error("Error fetching bookings:", error);
+        toast.error("Không thể tải danh sách đặt tour");
+        return [];
+      }
+    },
+    enabled: !!user?.id,
   });
 
   // Filter bookings based on active tab and search query
   const filteredBookings = bookings.filter((booking) => {
     const matchesTab = activeTab === "all" || booking.status === activeTab;
 
-    const matchesSearch = searchQuery === "" || booking.tourName.toLowerCase().includes(searchQuery.toLowerCase()) || booking.location.toLowerCase().includes(searchQuery.toLowerCase()) || booking.id.toString().includes(searchQuery);
+    const matchesSearch = searchQuery === "" || (booking.tour?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.tour?.destination || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.bookingId || "").toString().includes(searchQuery);
 
     return matchesTab && matchesSearch;
   });
@@ -149,6 +116,41 @@ const Bookings = () => {
       setExpandedBookingId(id);
     }
   };
+
+  // Handle booking cancellation
+  const handleCancelBooking = async (bookingId) => {
+    if (window.confirm("Bạn có chắc chắn muốn hủy đơn đặt tour này không?")) {
+      try {
+        // Assuming backend expects a PUT request with updated status in body
+        const response = await axiosInstance.put(`/booking/${bookingId}`, {
+          status: "cancelled", // Send the new status
+          // Include other necessary fields if backend requires full object update
+          // E.g., numberOfPeople, totalPrice, bookingDate, etc.
+          // For now, assuming only status is required for this update endpoint.
+        });
+
+        console.log("Booking cancelled successfully:", response.data);
+        toast.success("Đơn đặt tour đã được hủy.");
+        refetch(); // Refetch the bookings list to update the UI
+      } catch (error) {
+        console.error("Error cancelling booking:", error);
+        toast.error("Không thể hủy đơn đặt tour. Vui lòng thử lại.");
+      }
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="container-custom py-8">
+        <div className="max-w-5xl mx-auto text-center">
+          <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Có lỗi xảy ra</h2>
+          <p className="text-gray-600 mb-4">Không thể tải danh sách đặt tour. Vui lòng thử lại sau.</p>
+          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-custom py-8">
@@ -187,7 +189,8 @@ const Bookings = () => {
             {[...Array(3)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg border animate-pulse p-4">
                 <div className="flex items-center">
-                  <div className="w-24 h-16 bg-gray-200 rounded mr-4"></div>
+                  <div className="w-full sm:w-24 h-16 bg-gray-200 rounded mr-4"></div>
+
                   <div className="flex-1">
                     <div className="h-5 bg-gray-200 rounded w-1/3 mb-2"></div>
                     <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
@@ -201,7 +204,9 @@ const Bookings = () => {
         ) : filteredBookings.length === 0 ? (
           <div className="bg-gray-50 border rounded-lg p-8 text-center">
             <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-            <h3 className="text-lg font-bold mb-2">{searchQuery ? "Không tìm thấy đặt tour phù hợp" : activeTab === "all" ? "Bạn chưa có đặt tour nào" : `Bạn chưa có đặt tour nào ${activeTab === "confirmed" ? "đã xác nhận" : activeTab === "pending" ? "đang chờ xác nhận" : "đã hủy"}`}</h3>
+            <h3 className="text-lg font-bold mb-2">
+              {searchQuery ? "Không tìm thấy đặt tour phù hợp" : activeTab === "all" ? "Bạn chưa có đặt tour nào" : activeTab === "confirmed" ? "Bạn chưa có đặt tour nào đã xác nhận" : activeTab === "pending" ? "Bạn chưa có đặt tour nào đang chờ xác nhận" : "Bạn chưa có đặt tour nào đã hủy"}
+            </h3>
             <p className="text-gray-500 mb-4">{searchQuery ? "Vui lòng thử tìm kiếm với từ khóa khác" : "Hãy khám phá các tour du lịch hấp dẫn của chúng tôi"}</p>
             <Link to="/tours">
               <Button>Khám phá ngay</Button>
@@ -210,38 +215,42 @@ const Bookings = () => {
         ) : (
           <div className="space-y-4">
             {filteredBookings.map((booking) => (
-              <Card key={booking.id} className="overflow-hidden">
-                <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleBookingDetails(booking.id)}>
+              <Card key={booking.bookingId} className="overflow-hidden">
+                <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleBookingDetails(booking.bookingId)}>
                   <div className="flex flex-col sm:flex-row items-start">
-                    <div className="w-full sm:w-24 h-16 rounded-md bg-center bg-cover mb-4 sm:mb-0 sm:mr-4" style={{ backgroundImage: `url(${booking.imageUrl})` }}></div>
+                    <div className="w-full sm:w-24 h-16 rounded-md bg-center bg-cover mb-4 sm:mb-0 sm:mr-4" style={{ backgroundImage: `url(${booking.tour?.coverImage})` }}></div>
 
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
-                        <h3 className="font-bold text-lg">{booking.tourName}</h3>
+                        <h3 className="font-bold text-lg">{booking.tour?.name}</h3>
                         <BookingStatus status={booking.status} />
                       </div>
 
                       <div className="flex flex-col sm:flex-row text-sm text-gray-500 gap-y-1 sm:gap-x-4">
                         <div className="flex items-center">
                           <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span>{booking.location}</span>
+                          <span>{booking.tour?.destination}</span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span>Ngày đi: {formatDate(booking.travelDate)}</span>
+                          <span>Ngày đặt: {formatDate(booking.bookingDate)}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                          <span>Ngày khởi hành: {formatDate(booking.tour?.departureDate)}</span>
                         </div>
                         <div className="flex items-center">
                           <User className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span>{booking.numTravelers} người</span>
+                          <span>{booking.numberOfPeople} người</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 sm:mt-0 flex items-center">{expandedBookingId === booking.id ? <ChevronDown className="h-5 w-5 text-gray-400" /> : <ChevronRight className="h-5 w-5 text-gray-400" />}</div>
+                    <div className="mt-4 sm:mt-0 flex items-center">{expandedBookingId === booking.bookingId ? <ChevronDown className="h-5 w-5 text-gray-400" /> : <ChevronRight className="h-5 w-5 text-gray-400" />}</div>
                   </div>
                 </div>
 
-                {expandedBookingId === booking.id && (
+                {expandedBookingId === booking.bookingId && (
                   <div className="border-t px-4 py-4 bg-gray-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -249,7 +258,7 @@ const Bookings = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-500">Mã đặt tour:</span>
-                            <span className="font-medium">#{booking.id}</span>
+                            <span className="font-medium">#{booking.bookingId}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Ngày đặt:</span>
@@ -257,11 +266,15 @@ const Bookings = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Ngày khởi hành:</span>
-                            <span>{formatDate(booking.travelDate)}</span>
+                            <span>{formatDate(booking.tour?.departureDate)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Khách hàng:</span>
+                            <span className="font-medium">{user?.name || "N/A"}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Số người:</span>
-                            <span>{booking.numTravelers} người</span>
+                            <span>{booking.numberOfPeople} người</span>
                           </div>
                         </div>
                       </div>
@@ -271,25 +284,18 @@ const Bookings = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-500">Tổng tiền:</span>
-                            <span className="font-medium">{formatCurrency(booking.totalAmount)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Phương thức:</span>
-                            <span>
-                              {booking.paymentMethod === "credit_card" && "Thẻ tín dụng"}
-                              {booking.paymentMethod === "bank_transfer" && "Chuyển khoản"}
-                            </span>
+                            <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Trạng thái:</span>
                             <span
                               className={`
-                              ${booking.paymentStatus === "paid" ? "text-green-600" : booking.paymentStatus === "pending" ? "text-yellow-600" : "text-red-600"}
-                            `}
+                                ${booking.status === "confirmed" ? "text-green-600" : booking.status === "pending" ? "text-yellow-600" : "text-red-600"}
+                              `}
                             >
-                              {booking.paymentStatus === "paid" && "Đã thanh toán"}
-                              {booking.paymentStatus === "pending" && "Chờ thanh toán"}
-                              {booking.paymentStatus === "refunded" && "Đã hoàn tiền"}
+                              {booking.status === "confirmed" && "Đã xác nhận"}
+                              {booking.status === "pending" && "Chờ xác nhận"}
+                              {booking.status === "cancelled" && "Đã hủy"}
                             </span>
                           </div>
                         </div>
@@ -303,13 +309,13 @@ const Bookings = () => {
                       </Button>
 
                       {booking.status === "pending" && (
-                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleCancelBooking(booking.bookingId)}>
                           <X className="h-4 w-4 mr-2" />
                           Hủy đặt tour
                         </Button>
                       )}
 
-                      {booking.status === "confirmed" && (
+                      {booking.status === "cancelled" && (
                         <Link to={`/tours/${booking.tourId}`}>
                           <Button>Đặt lại tour này</Button>
                         </Link>
