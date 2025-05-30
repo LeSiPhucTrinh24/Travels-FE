@@ -137,7 +137,7 @@ const AdminItineraryForm = () => {
         });
         toast.success("Thêm hành trình mới thành công!");
       }
-      navigate("/itineraries");
+      navigate("/admin/itineraries");
     } catch (error) {
       console.error("Error saving itinerary:", error, error.response?.data);
       toast.error(error.response?.data?.message || JSON.stringify(error.response?.data) || (isEditMode ? "Không thể cập nhật hành trình" : "Không thể thêm hành trình mới"));
@@ -229,7 +229,7 @@ const AdminItineraryForm = () => {
               <SelectContent>
                 {destinations.map((dest) => (
                   <SelectItem key={dest.destinationId} value={dest.destinationId}>
-                    {dest.name}
+                    {dest.destinationName}
                   </SelectItem>
                 ))}
               </SelectContent>

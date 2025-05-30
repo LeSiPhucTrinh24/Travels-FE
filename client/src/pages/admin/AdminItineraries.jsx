@@ -11,6 +11,8 @@ const ManageItineraries = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [itineraries, setItineraries] = useState([]);
+  const [tours, setTours] = useState([]);
+  const [destinations, setDestinations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState(null);
@@ -23,8 +25,27 @@ const ManageItineraries = () => {
   const fetchItineraries = async () => {
     try {
       setIsLoading(true);
-      const response = await axiosInstance.get("/itineraries");
-      setItineraries(response.data.result || []);
+      const itineraryResponse = await axiosInstance.get("/itineraries", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+      });
+      const tourResponse = await axiosInstance.get("/tours", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+      });
+      const destinationResponse = await axiosInstance.get("/destinations", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+      });
+      setItineraries(itineraryResponse.data.result || []);
+      setTours(tourResponse.data.result || []);
+      setDestinations(destinationResponse.data.result || []);
     } catch (error) {
       console.error("Error fetching itineraries:", error);
       toast.error("Không thể tải danh sách lịch trình. Vui lòng thử lại sau.");
@@ -35,8 +56,14 @@ const ManageItineraries = () => {
 
   const handleViewDetail = async (itinerary) => {
     try {
-      const response = await axiosInstance.get(`/itineraries/${itinerary.id}`);
+      const response = await axiosInstance.get(`/itineraries/${itinerary.itineraryId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
       setSelectedItinerary(response.data.result);
+      console.log("handleViewDetail: ", response)
       setIsDetailOpen(true);
     } catch (error) {
       toast.error("Không thể tải chi tiết lịch trình");
@@ -51,8 +78,19 @@ const ManageItineraries = () => {
   const handleDelete = async (itineraryId) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa lịch trình này?")) {
       try {
-        await axiosInstance.delete(`/itineraries/${itineraryId}`);
-        setItineraries(itineraries.filter((itin) => itin.id !== itineraryId));
+        console.log("itineraryId to delete:", itineraryId, typeof itineraryId); // Log giá trị và kiểu dữ liệu
+        console.log("itineraries before delete:", itineraries);
+        const response = await axiosInstance.delete(`/itineraries/${itineraryId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
+        console.log("Delete response:", response); // Log phản hồi từ API để debug
+        // Lọc danh sách itineraries để loại bỏ itinerary đã xóa
+        setItineraries((prevItineraries) =>
+          prevItineraries.filter((itin) => itin.itineraryId !== itineraryId)
+        );
         toast.success("Xóa lịch trình thành công");
       } catch (error) {
         console.error("Error deleting itinerary:", error);
@@ -62,8 +100,7 @@ const ManageItineraries = () => {
   };
 
   const filteredItineraries = itineraries.filter((itinerary) =>
-    itinerary.tour_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    itinerary.tieu_de_ngay?.toLowerCase().includes(searchTerm.toLowerCase())
+    itinerary.dayTitle?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -108,12 +145,18 @@ const ManageItineraries = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredItineraries.map((itinerary) => (
-              <tr key={itinerary.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetail(itinerary)}>
-                <td className="py-4 px-4 text-sm text-gray-900">{itinerary.tour_name}</td>
-                <td className="py-4 px-4 text-sm text-gray-900">Ngày {itinerary.ngay_thu}</td>
-                <td className="py-4 px-4 text-sm text-gray-900">{itinerary.tieu_de_ngay}</td>
-                <td className="py-4 px-4 text-sm text-gray-500">{itinerary.diem_den}</td>
+            {filteredItineraries.map((itinerary) => {
+              const destination = destinations.find((dest) => dest.destinationId === itinerary.destinationId);
+              const destinationName = destination ? destination.destinationName : "Không xác định";
+
+              const tour = tours.find((tour) => tour.tourId === itinerary.tourId);
+              const tourName = tour ? tour.name : "Không xác định";
+              return(
+              <tr key={itinerary.itineraryId} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetail(itinerary)}>
+                <td className="py-4 px-4 text-sm text-gray-900">{tourName}</td>
+                <td className="py-4 px-4 text-sm text-gray-900">Ngày {itinerary.dayNumber}</td>
+                <td className="py-4 px-4 text-sm text-gray-900">{itinerary.dayTitle}</td>
+                <td className="py-4 px-4 text-sm text-gray-500">{destinationName}</td>
                 <td className="py-4 px-4 text-sm text-gray-500">
                   <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetail(itinerary)}>
@@ -123,7 +166,7 @@ const ManageItineraries = () => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => navigate(`/admin/itineraries/edit/${itinerary.id}`)}
+                      onClick={() => navigate(`/admin/itineraries/edit/${itinerary.itineraryId}`)}
                     >
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
@@ -131,14 +174,15 @@ const ManageItineraries = () => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleDelete(itinerary.id)}
+                      onClick={() => handleDelete(itinerary.itineraryId)}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
 
