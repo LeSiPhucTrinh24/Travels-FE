@@ -8,33 +8,37 @@ import { toast } from "react-toastify";
 
 const UserForm = ({ user, isEditing = false }) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { userId } = useParams();
   const [formData, setFormData] = useState({
     name: user?.name || "",
     phone: user?.phone || "",
     address: user?.address || "",
     dob: user?.dob || "",
-    image: user?.image || "",
+    image: user?.avatar || user?.image || "",
+    userName: "",
+    password: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (isEditing && id) {
+    if (isEditing && userId) {
       axiosInstance
-        .get(`/users/${id}`)
+        .get(`/users/${userId}`)
         .then((res) => {
           const user = res.data.result;
-          console.log("User data from API:", user);
+          console.log("User data from API (GET):", user);
           setFormData({
             name: user.fullName || user.name || "",
             phone: user.phone || "",
             address: user.address || "",
-            dob: user.dob || "",
-            image: user.avatar || user.image || "",
+            dob: user.dob ? new Date(user.dob).toISOString().split("T")[0] : "",
+            image: user.avatar || "",
           });
         })
         .catch(() => toast.error("Không thể tải thông tin người dùng"));
     }
-  }, [isEditing, id]);
+  }, [isEditing, userId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,6 +50,9 @@ const UserForm = ({ user, isEditing = false }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({}); // Clear previous errors
+
     const form = new FormData();
     form.append("fullName", formData.name);
     form.append("phone", formData.phone);
@@ -53,21 +60,34 @@ const UserForm = ({ user, isEditing = false }) => {
     if (formData.dob) {
       form.append("dob", formData.dob);
     }
-    if (formData.image && formData.image instanceof File) {
+
+    // Only append file if it's a new File object (new image selected)
+    if (formData.image instanceof File) {
       form.append("file", formData.image);
+    } else if (isEditing && formData.image) {
+      // If editing and image is a string (URL), append it as avatar
+      form.append("avatar", formData.image);
     }
+
+    if (!isEditing) {
+      form.append("userName", formData.userName);
+      form.append("password", formData.password);
+    }
+
     for (let pair of form.entries()) {
       console.log(pair[0] + ": " + pair[1]);
     }
     try {
-      if (isEditing && id) {
-        await axiosInstance.put(`/users/${id}`, form, {
+      if (isEditing && userId) {
+        await axiosInstance.put(`/users/${userId}`, form, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "multipart/form-data",
           },
         });
         toast.success("Cập nhật người dùng thành công!");
+        // Navigate to user list page after successful update
+        navigate("/admin/users");
       } else {
         await axiosInstance.post("/users", form, {
           headers: {
@@ -76,10 +96,23 @@ const UserForm = ({ user, isEditing = false }) => {
           },
         });
         toast.success("Thêm người dùng thành công!");
+        navigate("/admin/users");
       }
-      navigate("/admin/users");
     } catch (err) {
-      toast.error("Thao tác thất bại!");
+      console.error("API error:", err);
+      if (err.response && err.response.data && err.response.data.message) {
+        // Handle backend validation errors
+        if (err.response.status === 400) {
+          toast.error(`Lỗi validation: ${err.response.data.message}`);
+          // You might need to parse err.response.data.errors if backend sends specific field errors
+        } else {
+          toast.error(`Lỗi: ${err.response.data.message}`);
+        }
+      } else {
+        toast.error("Thao tác thất bại! Vui lòng thử lại.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -144,29 +177,43 @@ const UserForm = ({ user, isEditing = false }) => {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Họ tên</label>
-          <Input name="name" value={formData.name} onChange={handleChange} placeholder="Nhập họ tên" required />
+          <Input name="name" value={formData.name} onChange={handleChange} placeholder="Nhập họ tên" required disabled={isSubmitting} />
         </div>
+
+        {!isEditing && (
+          <>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-900">Email (Tên đăng nhập)</label>
+              <Input name="userName" type="email" value={formData.userName} onChange={handleChange} placeholder="Nhập email" required disabled={isSubmitting} />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-900">Mật khẩu</label>
+              <Input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Nhập mật khẩu" required minLength={6} disabled={isSubmitting} />
+            </div>
+          </>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Số điện thoại</label>
-          <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Nhập số điện thoại" required />
+          <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Nhập số điện thoại" required disabled={isSubmitting} />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Địa chỉ</label>
-          <Input name="address" value={formData.address} onChange={handleChange} placeholder="Nhập địa chỉ" required />
+          <Input name="address" value={formData.address} onChange={handleChange} placeholder="Nhập địa chỉ" required disabled={isSubmitting} />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Ngày sinh</label>
-          <Input type="date" name="dob" value={formData.dob} onChange={handleChange} placeholder="yyyy-MM-dd" />
+          <Input type="date" name="dob" value={formData.dob} onChange={handleChange} placeholder="yyyy-MM-dd" disabled={isSubmitting} />
         </div>
 
         <div className="flex justify-end space-x-4 pt-4">
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-            {isEditing ? "Cập nhật" : "Thêm mới"}
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
+            {isSubmitting ? (isEditing ? "Đang cập nhật..." : "Đang thêm...") : isEditing ? "Cập nhật" : "Thêm mới"}
           </Button>
-          <Button type="button" variant="outline" onClick={handleCancel}>
+          <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
             Hủy
           </Button>
         </div>

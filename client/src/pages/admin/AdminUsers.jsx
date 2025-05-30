@@ -29,10 +29,7 @@ const ManageUsers = () => {
   };
 
   // Filter users based on search term và chỉ lấy khách hàng
-  const filteredUsers = users.filter(
-    (user) =>
-      user.roles && Array.isArray(user.roles) && user.roles.includes("USER") && ((user.fullName || user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.userName || user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.phone || "").includes(searchTerm))
-  );
+  const filteredUsers = users.filter((user) => (user.fullName || user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.userName || user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.phone || "").includes(searchTerm));
 
   const handleEdit = (user) => {
     navigate(`/admin/users/edit/${user.userId || user.id}`);
@@ -90,8 +87,6 @@ const ManageUsers = () => {
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vai trò</th>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
@@ -127,10 +122,7 @@ const ManageUsers = () => {
                     <td className="py-4 px-4 text-sm text-gray-500">
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${user.roles && user.roles.includes("ADMIN") ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>{user.roles && user.roles.includes("ADMIN") ? "Admin" : "Khách hàng"}</span>
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${user.status === "active" || user.status === true ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{user.status === "active" || user.status === true ? "Hoạt động" : "Vô hiệu"}</span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">{user.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : ""}</td>
+
                     <td className="py-4 px-4 text-sm text-gray-500">
                       <div className="flex space-x-2">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(user)}>

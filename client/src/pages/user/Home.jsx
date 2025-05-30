@@ -4,6 +4,8 @@ import { MapPin, Calendar, Users, ChevronRight, ArrowRight, Star, Search, Globe,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sampleTours, initializeTourWithImage } from "@/lib/mockData";
+import axiosInstance from "@/utils/axiosInstance";
+import { toast } from "react-toastify";
 
 // Format currency
 const formatCurrency = (value) => {
@@ -18,7 +20,7 @@ const formatCurrency = (value) => {
 const TourCard = ({ tour, onClick }) => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
     <div className="h-48 overflow-hidden relative">
-      <img src={tour.imageUrl} alt={tour.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+      <img src={tour.coverImage} alt={tour.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
       {tour.featured && <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">Nổi bật</div>}
     </div>
 
@@ -26,17 +28,17 @@ const TourCard = ({ tour, onClick }) => (
       <h3 className="font-bold text-lg mb-1">{tour.name}</h3>
       <div className="flex items-center mb-2 text-gray-500 text-sm">
         <MapPin className="h-4 w-4 mr-1" />
-        <span>{tour.location}</span>
+        <span>{tour.departureLocation}</span>
       </div>
 
-      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tour.description.substring(0, 100)}...</p>
+      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tour.description}</p>
 
       <div className="flex items-center justify-between mt-auto">
         <div>
           <span className="font-bold text-lg text-primary">{formatCurrency(tour.price)}</span>
           <span className="text-gray-500 text-sm">/người</span>
         </div>
-        <div className="text-gray-500 text-sm">{tour.duration}</div>
+        <div className="text-gray-500 text-sm">{tour.duration} ngày</div>
       </div>
     </div>
   </div>
@@ -80,6 +82,8 @@ const Testimonial = ({ testimonial }) => (
 const Home = () => {
   const navigate = useNavigate();
   const [featuredTours, setFeaturedTours] = useState([]);
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
+  const [displayedFeaturedTours, setDisplayedFeaturedTours] = useState([]);
   const [searchParams, setSearchParams] = useState({
     destination: "",
     date: "",
@@ -89,25 +93,75 @@ const Home = () => {
   // Fetch featured tours
   useEffect(() => {
     const fetchFeaturedTours = async () => {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Get featured tours
-      const featured = sampleTours
-        .filter((tour) => tour.featured)
-        .slice(0, 6)
-        .map((tour) => initializeTourWithImage(tour));
-
-      setFeaturedTours(featured);
+      setIsLoadingFeatured(true);
+      try {
+        const response = await axiosInstance.get("/tours"); // Assuming '/tours' endpoint returns all tours
+        // Map backend 'featured' to frontend 'featured' and filter
+        const featured = response.data.result
+          .map((tour) => ({
+            ...tour,
+            featured: tour.featured === true || tour.featured === "true",
+          }))
+          .filter((tour) => tour.featured === true);
+        setFeaturedTours(featured);
+        setDisplayedFeaturedTours(featured);
+      } catch (error) {
+        console.error("Error fetching featured tours:", error);
+        toast.error("Không thể tải danh sách tour nổi bật.");
+        setFeaturedTours([]);
+        setDisplayedFeaturedTours([]);
+      } finally {
+        setIsLoadingFeatured(false);
+      }
     };
 
     fetchFeaturedTours();
   }, []);
 
+  // Apply filters to featured tours when searchParams change
+  useEffect(() => {
+    let results = [...featuredTours];
+
+    // Filter by destination
+    if (searchParams.destination) {
+      results = results.filter((tour) => tour.departureLocation.toLowerCase().includes(searchParams.destination.toLowerCase()) || tour.name.toLowerCase().includes(searchParams.destination.toLowerCase()));
+    }
+
+    // Filter by date
+    if (searchParams.date) {
+      const selectedDate = new Date(searchParams.date);
+      results = results.filter((tour) => {
+        const tourDate = new Date(tour.departureDate);
+        // Compare dates only (ignore time part)
+        return tourDate.toDateString() === selectedDate.toDateString();
+      });
+    }
+
+    // Filter by people (assuming maxPeople or a similar field exists on tour object)
+    if (searchParams.people) {
+      const requiredPeople = parseInt(searchParams.people);
+      if (!isNaN(requiredPeople)) {
+        results = results.filter((tour) => {
+          // Assuming tour object has a 'maxPeople' or 'capacity' field
+          // Adjust this logic based on your actual tour data structure
+          // For simplicity, let's assume a 'maxPeople' field indicates suitability
+          if (searchParams.people === "5+") {
+            return tour.maxPeople && tour.maxPeople >= 5;
+          } else {
+            return tour.maxPeople && tour.maxPeople >= requiredPeople;
+          }
+        });
+      }
+    }
+
+    setDisplayedFeaturedTours(results);
+  }, [searchParams, featuredTours]);
+
   // Handle search form submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    navigate(`/tours?destination=${searchParams.destination}`);
+    const query = new URLSearchParams(searchParams).toString();
+    navigate(`/tours?${query}`);
   };
 
   // Handle tour card click
@@ -308,9 +362,15 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredTours.slice(0, 6).map((tour) => (
-              <TourCard key={tour.id} tour={tour} onClick={() => handleTourClick(tour.id)} />
-            ))}
+            {isLoadingFeatured ? (
+              <div className="col-span-full flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : displayedFeaturedTours.length > 0 ? (
+              displayedFeaturedTours.slice(0, 6).map((tour) => <TourCard key={tour.tourId} tour={tour} onClick={() => handleTourClick(tour.tourId)} />)
+            ) : (
+              <div className="col-span-full text-center text-gray-500">Không có tour nổi bật nào phù hợp với tiêu chí tìm kiếm.</div>
+            )}
           </div>
 
           <div className="mt-8 flex justify-center md:hidden">

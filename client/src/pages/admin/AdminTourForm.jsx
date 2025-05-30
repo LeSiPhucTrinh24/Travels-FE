@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { format as formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Image, CalendarIcon, DollarSign, Users, MapPin, Clock, Star, CheckCircle, X, Tag } from "lucide-react";
+import { Image, CalendarIcon, DollarSign, Users, MapPin, Clock, Star, CheckCircle, X, Tag, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,7 @@ const AdminTourForm = () => {
     coverImage: "",
     tourTypeId: "",
     status: true,
-    isFeatured: false,
+    featured: false,
   });
 
   const [categories, setCategories] = useState([]);
@@ -37,6 +37,8 @@ const AdminTourForm = () => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [tourImages, setTourImages] = useState([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -66,6 +68,7 @@ const AdminTourForm = () => {
   useEffect(() => {
     if (isEditMode) {
       fetchTourDetails();
+      fetchTourImages();
     }
   }, [tourId]);
 
@@ -85,7 +88,7 @@ const AdminTourForm = () => {
         coverImage: tour.coverImage || "",
         tourTypeId: tour.tourTypeId || "",
         status: tour.status ?? true,
-        isFeatured: tour.isFeatured ?? false,
+        featured: tour.featured === true || tour.featured === "true",
       });
       if (tour.coverImage) {
         setPreviewUrl(tour.coverImage);
@@ -96,6 +99,19 @@ const AdminTourForm = () => {
       navigate("/admin/tours");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTourImages = async () => {
+    try {
+      setIsLoadingImages(true);
+      const response = await axiosInstance.get(`/tours/${tourId}/images`);
+      setTourImages(response.data.result || []);
+    } catch (error) {
+      console.error("Error fetching tour images:", error);
+      toast.error("Không thể tải ảnh tour. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoadingImages(false);
     }
   };
 
@@ -115,6 +131,39 @@ const AdminTourForm = () => {
     }
   };
 
+  const handleAddImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await axiosInstance.post(`/tours/${tourId}/images`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setTourImages((prev) => [...prev, response.data.result]);
+      toast.success("Thêm ảnh thành công!");
+    } catch (error) {
+      console.error("Error adding image:", error);
+      toast.error("Không thể thêm ảnh. Vui lòng thử lại sau.");
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    try {
+      await axiosInstance.delete(`/tours/${tourId}/images/${imageId}`);
+      setTourImages((prev) => prev.filter((img) => img.imageId !== imageId));
+      toast.success("Xóa ảnh thành công!");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast.error("Không thể xóa ảnh. Vui lòng thử lại sau.");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -129,7 +178,7 @@ const AdminTourForm = () => {
       formDataToSend.append("maxPeople", formData.maxPeople ? String(formData.maxPeople) : "");
       formDataToSend.append("tourTypeId", formData.tourTypeId);
       formDataToSend.append("status", formData.status === true || formData.status === "true" ? "true" : "false");
-      formDataToSend.append("isFeatured", formData.isFeatured === true || formData.isFeatured === "true" ? "true" : "false");
+      formDataToSend.append("featured", formData.featured === true || formData.featured === "true" ? "true" : "false");
       if (image) {
         formDataToSend.append("file", image);
       } else if (formData.coverImage) {
@@ -288,7 +337,7 @@ const AdminTourForm = () => {
                 <Star className="w-4 h-4 text-gray-500" />
                 Nổi bật
               </label>
-              <Select value={formData.isFeatured ? "true" : "false"} onValueChange={(value) => setFormData((prev) => ({ ...prev, isFeatured: value === "true" }))}>
+              <Select value={formData.featured ? "true" : "false"} onValueChange={(value) => setFormData((prev) => ({ ...prev, featured: value === "true" }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
@@ -332,13 +381,6 @@ const AdminTourForm = () => {
                 )}
               </div>
             </div>
-            {isEditMode && (
-              <div className="mt-4 flex justify-end">
-                <Button type="button" variant="outline" onClick={() => navigate(`/admin/tours/${tourId}/images`)}>
-                  Thêm ảnh cho tour
-                </Button>
-              </div>
-            )}
           </div>
           <div className="flex justify-end space-x-4 pt-6">
             <Button type="button" variant="outline" onClick={() => navigate("/admin/tours")} disabled={isLoading}>
@@ -350,6 +392,42 @@ const AdminTourForm = () => {
           </div>
         </form>
       </div>
+
+      {isEditMode && (
+        <div className="mt-8 bg-white rounded-lg p-6 shadow">
+          <h2 className="text-xl font-semibold mb-4">Quản lý ảnh tour</h2>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {tourImages.map((image) => (
+              <div key={image.imageId} className="relative group">
+                <img src={image.url} alt="Tour" className="w-full h-48 object-cover rounded-lg" />
+                <button
+                  onClick={() => {
+                    if (window.confirm("Bạn có chắc chắn muốn xóa ảnh này không?")) {
+                      handleDeleteImage(image.imageId);
+                    }
+                  }}
+                  className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            <label className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+              <Plus className="w-8 h-8 text-gray-400 mb-2" />
+              <span className="text-sm text-gray-600">Thêm ảnh</span>
+              <input type="file" accept="image/*" onChange={handleAddImage} className="hidden" />
+            </label>
+          </div>
+
+          {isLoadingImages && (
+            <div className="flex justify-center mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

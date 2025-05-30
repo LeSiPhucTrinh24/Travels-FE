@@ -6,6 +6,7 @@ import { Search, Plus, Edit, Trash2, Eye, Filter, ArrowUpDown } from "lucide-rea
 import AdminTourDetail from "./AdminTourDetail";
 import { toast } from "react-toastify";
 import axiosInstance from "@/utils/axiosInstance";
+import { useLocation } from "react-router-dom";
 
 // Format currency
 const formatCurrency = (value) => {
@@ -18,6 +19,7 @@ const formatCurrency = (value) => {
 
 const ManageTours = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState(null);
@@ -29,13 +31,19 @@ const ManageTours = () => {
   useEffect(() => {
     fetchTours();
     fetchCategories();
-  }, []);
+  }, [location.pathname]);
 
   const fetchTours = async () => {
     try {
       setIsLoading(true);
       const response = await axiosInstance.get("/tours");
-      setTours(response.data.result);
+      // Map backend 'isFeatured' to frontend 'featured'
+      const mappedTours = response.data.result.map((tour) => ({
+        ...tour,
+        featured: tour.featured === true || tour.featured === "true",
+      }));
+      setTours(mappedTours);
+      console.log(response.data);
     } catch (error) {
       console.error("Error fetching tours:", error);
       toast.error("Không thể tải danh sách tour. Vui lòng thử lại sau.");
@@ -56,6 +64,7 @@ const ManageTours = () => {
         },
       });
       setCategories(response.data.result || []);
+      console.log(response.data.result);
     } catch (error) {
       // ignore
     }
@@ -92,7 +101,7 @@ const ManageTours = () => {
   const handleToggleStatus = async (tourId) => {
     try {
       const tour = tours.find((t) => t.tourId === tourId);
-      const updatedTour = { ...tour, status: tour.status === "active" ? "inactive" : "active" };
+      const updatedTour = { ...tour, status: !(tour.status === true || tour.status === "true") };
 
       await axiosInstance.put(`/tours/${tourId}`, updatedTour);
       setTours(tours.map((t) => (t.tourId === tourId ? updatedTour : t)));
@@ -106,9 +115,12 @@ const ManageTours = () => {
   const handleToggleFeatured = async (tourId) => {
     try {
       const tour = tours.find((t) => t.tourId === tourId);
-      const updatedTour = { ...tour, featured: !tour.featured };
+      // Toggle the featured status (using the internal 'featured' property)
+      const updatedTour = { ...tour, featured: !(tour.featured === true || tour.featured === "true") };
 
-      await axiosInstance.put(`/tours/${tourId}`, updatedTour);
+      // Send the update to the backend using 'isFeatured'
+      await axiosInstance.put(`/tours/${tourId}`, { ...updatedTour, featured: updatedTour.featured });
+
       setTours(tours.map((t) => (t.tourId === tourId ? updatedTour : t)));
       toast.success("Đã cập nhật trạng thái nổi bật của tour!");
     } catch (error) {
@@ -190,9 +202,9 @@ const ManageTours = () => {
                         e.stopPropagation();
                         handleToggleFeatured(tour.tourId);
                       }}
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${tour.featured ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}
+                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${tour.featured === true || tour.featured === "true" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}
                     >
-                      {tour.featured ? "Có" : "Không"}
+                      {tour.featured === true || tour.featured === "true" ? "Có" : "Không"}
                     </button>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-500">
@@ -203,7 +215,7 @@ const ManageTours = () => {
                       }}
                       className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${tour.status === true || tour.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                     >
-                      {tour.status === true || tour.status === "active" ? "Hoạt động" : "Dừng hoạt động"}
+                      {tour.status === true || tour.status === "true" ? "Hoạt động" : "Dừng hoạt động"}
                     </button>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-500">

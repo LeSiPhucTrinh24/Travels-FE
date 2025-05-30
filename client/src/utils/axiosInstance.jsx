@@ -35,34 +35,52 @@ axiosInstance.interceptors.response.use(
 
       try {
         // Try to refresh token
-        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/refresh`, {}, { withCredentials: true });
+        console.debug("Attempting to refresh token...");
+        const refreshToken = localStorage.getItem("refreshToken"); // Get refresh token
+        if (!refreshToken) {
+          throw new Error("No refresh token found");
+        }
+        // Send refresh token in the request body
+        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/refresh`, { refreshToken }, { withCredentials: true });
 
-        const { accessToken } = response.data;
+        const { accessToken } = response.data.result || response.data; // Adjust based on backend response structure
+        if (!accessToken) {
+          throw new Error("No access token in refresh response");
+        }
+
         localStorage.setItem("token", accessToken);
+        console.debug("Token refreshed successfully:", accessToken);
 
         // Retry the original request with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, clear auth data
+        console.error("Refresh token failed:", refreshError.response?.data || refreshError.message);
+        // Clear auth data
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("refreshToken"); // Clear refresh token as well
 
         // Only redirect to login if not already on login page and not on admin page
         const currentPath = window.location.pathname;
-        if (!currentPath.includes("/login") && !currentPath.includes("/admin")) {
-          window.location.href = "/login";
+        if (!currentPath.includes("/admin")) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("userId");
+          if (!currentPath.includes("/login") && !currentPath.includes("/register")) {
+            window.location.href = "/login";
+          }
         }
         return Promise.reject(refreshError);
       }
     }
 
-    // Handle other errors
+    // Handle 403 Forbidden errors
     if (error.response?.status === 403) {
-      // Handle forbidden access
       console.error("Access forbidden:", error.response.data);
-      // Only redirect if not on admin page
-      if (!window.location.pathname.includes("/admin")) {
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes("/admin")) {
         window.location.href = "/";
       }
     }
