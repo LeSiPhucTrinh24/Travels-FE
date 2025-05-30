@@ -1,122 +1,121 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Search, Plus, Edit, Trash2, Eye } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "react-toastify";
+import axiosInstance from "@/utils/axiosInstance";
+import AdminItineraryDetail from "./AdminItineraryDetail"; // Import file chi tiết mới
 
 const ManageItineraries = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [itineraries, setItineraries] = useState([]);
+  const [tours, setTours] = useState([]);
+  const [destinations, setDestinations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState(null);
-  const [formData, setFormData] = useState({
-    tour_id: "",
-    ngay_thu: "",
-    tieu_de_ngay: "",
-    mo_ta_chi_tiet: "",
-    hinh_anh: "",
-    diem_den_id: "",
-  });
 
-  // Mock data
-  const [itineraries, setItineraries] = useState([
-    {
-      id: 1,
-      tour_id: 1,
-      tour_name: "Vịnh Hạ Long 2 ngày 1 đêm",
-      ngay_thu: 1,
-      tieu_de_ngay: "Khám phá Vịnh Hạ Long",
-      mo_ta_chi_tiet: "Tham quan các hang động, đảo đá và thưởng thức hải sản tươi sống",
-      diem_den: "Vịnh Hạ Long",
-    },
-    {
-      id: 2,
-      tour_id: 1,
-      tour_name: "Vịnh Hạ Long 2 ngày 1 đêm",
-      ngay_thu: 2,
-      tieu_de_ngay: "Khám phá Đảo Tuần Châu",
-      mo_ta_chi_tiet: "Tham quan đảo Tuần Châu, xem biểu diễn nhạc nước",
-      diem_den: "Đảo Tuần Châu",
-    },
-  ]);
+  // Fetch itineraries on component mount
+  useEffect(() => {
+    fetchItineraries();
+  }, []);
 
-  // Mock data for tours and destinations
-  const tours = [
-    { id: 1, ten_tour: "Vịnh Hạ Long 2 ngày 1 đêm" },
-    { id: 2, ten_tour: "Đà Nẵng - Hội An 3 ngày 2 đêm" },
-  ];
-
-  const destinations = [
-    { id: 1, ten_diem_den: "Vịnh Hạ Long" },
-    { id: 2, ten_diem_den: "Đảo Tuần Châu" },
-    { id: 3, ten_diem_den: "Đà Nẵng" },
-    { id: 4, ten_diem_den: "Hội An" },
-  ];
-
-  const handleOpenModal = (itinerary = null) => {
-    setSelectedItinerary(itinerary);
-    setFormData(
-      itinerary || {
-        tour_id: "",
-        ngay_thu: "",
-        tieu_de_ngay: "",
-        mo_ta_chi_tiet: "",
-        hinh_anh: "",
-        diem_den_id: "",
-      }
-    );
-    setIsModalOpen(true);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (selectedItinerary) {
-      // Edit itinerary
-      setItineraries(itineraries.map((itin) => (itin.id === selectedItinerary.id ? { ...itin, ...formData } : itin)));
-    } else {
-      // Add new itinerary
-      const newItinerary = {
-        id: itineraries.length + 1,
-        ...formData,
-        tour_name: tours.find((t) => t.id === parseInt(formData.tour_id))?.ten_tour,
-        diem_den: destinations.find((d) => d.id === parseInt(formData.diem_den_id))?.ten_diem_den,
-      };
-      setItineraries([...itineraries, newItinerary]);
+  const fetchItineraries = async () => {
+    try {
+      setIsLoading(true);
+      const itineraryResponse = await axiosInstance.get("/itineraries", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+      });
+      const tourResponse = await axiosInstance.get("/tours", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+      });
+      const destinationResponse = await axiosInstance.get("/destinations", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+      });
+      setItineraries(itineraryResponse.data.result || []);
+      setTours(tourResponse.data.result || []);
+      setDestinations(destinationResponse.data.result || []);
+    } catch (error) {
+      console.error("Error fetching itineraries:", error);
+      toast.error("Không thể tải danh sách lịch trình. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoading(false);
     }
-    setIsModalOpen(false);
-    setFormData({
-      tour_id: "",
-      ngay_thu: "",
-      tieu_de_ngay: "",
-      mo_ta_chi_tiet: "",
-      hinh_anh: "",
-      diem_den_id: "",
-    });
   };
 
-  const handleDelete = (itineraryId) => {
+  const handleViewDetail = async (itinerary) => {
+    try {
+      const response = await axiosInstance.get(`/itineraries/${itinerary.itineraryId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
+      setSelectedItinerary(response.data.result);
+      console.log("handleViewDetail: ", response)
+      setIsDetailOpen(true);
+    } catch (error) {
+      toast.error("Không thể tải chi tiết lịch trình");
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedItinerary(null);
+    setIsDetailOpen(false);
+  };
+
+  const handleDelete = async (itineraryId) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa lịch trình này?")) {
-      setItineraries(itineraries.filter((itin) => itin.id !== itineraryId));
+      try {
+        console.log("itineraryId to delete:", itineraryId, typeof itineraryId); // Log giá trị và kiểu dữ liệu
+        console.log("itineraries before delete:", itineraries);
+        const response = await axiosInstance.delete(`/itineraries/${itineraryId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
+        console.log("Delete response:", response); // Log phản hồi từ API để debug
+        // Lọc danh sách itineraries để loại bỏ itinerary đã xóa
+        setItineraries((prevItineraries) =>
+          prevItineraries.filter((itin) => itin.itineraryId !== itineraryId)
+        );
+        toast.success("Xóa lịch trình thành công");
+      } catch (error) {
+        console.error("Error deleting itinerary:", error);
+        toast.error("Không thể xóa lịch trình. Vui lòng thử lại sau.");
+      }
     }
   };
 
-  const filteredItineraries = itineraries.filter((itinerary) => itinerary.tour_name.toLowerCase().includes(searchTerm.toLowerCase()) || itinerary.tieu_de_ngay.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredItineraries = itineraries.filter((itinerary) =>
+    itinerary.dayTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý lịch trình</h1>
-
-        <Button onClick={() => handleOpenModal()}>
+        <Button onClick={() => navigate("/admin/itineraries/add")} className="bg-primary text-white">
           <Plus className="h-4 w-4 mr-2" />
           Thêm lịch trình
         </Button>
@@ -125,7 +124,12 @@ const ManageItineraries = () => {
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input placeholder="Tìm kiếm lịch trình..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+          <Input
+            placeholder="Tìm kiếm lịch trình..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
       </div>
 
@@ -141,90 +145,61 @@ const ManageItineraries = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredItineraries.map((itinerary) => (
-              <tr key={itinerary.id}>
-                <td className="py-4 px-4 text-sm text-gray-900">{itinerary.tour_name}</td>
-                <td className="py-4 px-4 text-sm text-gray-900">Ngày {itinerary.ngay_thu}</td>
-                <td className="py-4 px-4 text-sm text-gray-900">{itinerary.tieu_de_ngay}</td>
-                <td className="py-4 px-4 text-sm text-gray-500">{itinerary.diem_den}</td>
+            {filteredItineraries.map((itinerary) => {
+              const destination = destinations.find((dest) => dest.destinationId === itinerary.destinationId);
+              const destinationName = destination ? destination.destinationName : "Không xác định";
+
+              const tour = tours.find((tour) => tour.tourId === itinerary.tourId);
+              const tourName = tour ? tour.name : "Không xác định";
+              return(
+              <tr key={itinerary.itineraryId} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetail(itinerary)}>
+                <td className="py-4 px-4 text-sm text-gray-900">{tourName}</td>
+                <td className="py-4 px-4 text-sm text-gray-900">Ngày {itinerary.dayNumber}</td>
+                <td className="py-4 px-4 text-sm text-gray-900">{itinerary.dayTitle}</td>
+                <td className="py-4 px-4 text-sm text-gray-500">{destinationName}</td>
                 <td className="py-4 px-4 text-sm text-gray-500">
-                  <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetail(itinerary)}>
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenModal(itinerary)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => navigate(`/admin/itineraries/edit/${itinerary.itineraryId}`)}
+                    >
                       <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(itinerary.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDelete(itinerary.itineraryId)}
+                    >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
+
+        {filteredItineraries.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Không tìm thấy lịch trình nào phù hợp với từ khóa "{searchTerm}"</p>
+          </div>
+        )}
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedItinerary ? "Chỉnh sửa lịch trình" : "Thêm lịch trình mới"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tour</label>
-                <Select value={formData.tour_id} onValueChange={(value) => setFormData((prev) => ({ ...prev, tour_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn tour" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tours.map((tour) => (
-                      <SelectItem key={tour.id} value={tour.id.toString()}>
-                        {tour.ten_tour}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày thứ</label>
-                <Input type="number" name="ngay_thu" value={formData.ngay_thu} onChange={handleChange} placeholder="Nhập số ngày" min="1" required />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề ngày</label>
-              <Input name="tieu_de_ngay" value={formData.tieu_de_ngay} onChange={handleChange} placeholder="Nhập tiêu đề cho ngày này" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Điểm đến</label>
-              <Select value={formData.diem_den_id} onValueChange={(value) => setFormData((prev) => ({ ...prev, diem_den_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn điểm đến" />
-                </SelectTrigger>
-                <SelectContent>
-                  {destinations.map((dest) => (
-                    <SelectItem key={dest.id} value={dest.id.toString()}>
-                      {dest.ten_diem_den}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả chi tiết</label>
-              <Textarea name="mo_ta_chi_tiet" value={formData.mo_ta_chi_tiet} onChange={handleChange} placeholder="Nhập mô tả chi tiết cho ngày này" rows={4} required />
-            </div>
-            <div className="flex justify-end space-x-4">
-              <Button type="submit">{selectedItinerary ? "Cập nhật" : "Thêm mới"}</Button>
-              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                Hủy
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {selectedItinerary && (
+        <AdminItineraryDetail
+          itinerary={selectedItinerary}
+          isOpen={isDetailOpen}
+          onClose={handleCloseDetail}
+        />
+      )}
     </div>
   );
 };
