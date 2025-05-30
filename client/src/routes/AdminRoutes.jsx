@@ -22,7 +22,7 @@ export default function AdminRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="tours" element={<AdminTours />} />
         <Route path="tours/add" element={<AdminTourForm />} />
-        <Route path="tours/edit/:id" element={<AdminTourForm isEditing />} />
+        <Route path="tours/edit/:tourId" element={<AdminTourForm isEditing />} />
         <Route path="tours/:id/images" element={<AdminTourImageForm />} />
         <Route path="categories" element={<AdminCategories />} />
         <Route path="destinations" element={<AdminDestinations />} />
@@ -32,7 +32,7 @@ export default function AdminRoutes() {
         <Route path="itineraries/:itineraryId" element={<AdminItineraryDetail />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="users/add" element={<AdminUserForm />} />
-        <Route path="users/edit/:id" element={<AdminUserForm isEditing />} />
+        <Route path="users/edit/:userId" element={<AdminUserForm isEditing />} />
         <Route path="bookings" element={<AdminBookings />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="reports" element={<Reports />} />

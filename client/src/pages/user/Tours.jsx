@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { MapPin, Calendar, Users, Filter, ChevronDown, ChevronUp, Star, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sampleTours, initializeTourWithImage } from "@/lib/mockData";
+import * as Slider from "@radix-ui/react-slider";
+import axiosInstance from "@/utils/axiosInstance";
+import { toast } from "react-toastify";
 
 // Format currency
 const formatCurrency = (value) => {
@@ -18,7 +20,7 @@ const formatCurrency = (value) => {
 const TourCard = ({ tour, onClick }) => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
     <div className="h-48 overflow-hidden relative">
-      <img src={tour.imageUrl} alt={tour.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+      <img src={tour.coverImage} alt={tour.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
       {tour.featured && <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">Nổi bật</div>}
     </div>
 
@@ -26,17 +28,17 @@ const TourCard = ({ tour, onClick }) => (
       <h3 className="font-bold text-lg mb-1">{tour.name}</h3>
       <div className="flex items-center mb-2 text-gray-500 text-sm">
         <MapPin className="h-4 w-4 mr-1" />
-        <span>{tour.location}</span>
+        <span>{tour.destination}</span>
       </div>
 
-      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tour.description.substring(0, 100)}...</p>
+      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tour.description}</p>
 
       <div className="flex items-center justify-between mt-auto">
         <div>
           <span className="font-bold text-lg text-primary">{formatCurrency(tour.price)}</span>
           <span className="text-gray-500 text-sm">/người</span>
         </div>
-        <div className="text-gray-500 text-sm">{tour.duration}</div>
+        <div className="text-gray-500 text-sm">{tour.duration} ngày</div>
       </div>
     </div>
   </div>
@@ -60,25 +62,54 @@ const Tours = () => {
     people: "",
     minPrice: "",
     maxPrice: "",
-    duration: [],
+    minDuration: "",
+    maxDuration: "",
   });
 
-  // Filter options
-  const durationOptions = ["1-3 ngày", "4-7 ngày", "8-14 ngày", "15+ ngày"];
+  // Price range options
+  const priceRanges = [
+    { label: "Dưới 1 triệu", min: 0, max: 1000000 },
+    { label: "1 - 3 triệu", min: 1000000, max: 3000000 },
+    { label: "3 - 5 triệu", min: 3000000, max: 5000000 },
+    { label: "5 - 10 triệu", min: 5000000, max: 10000000 },
+    { label: "Trên 10 triệu", min: 10000000, max: Infinity },
+  ];
+
+  // Get min and max price from all tours
+  const getPriceRange = () => {
+    if (tours.length === 0) return { min: 0, max: 10000000 };
+    const prices = tours.map((tour) => tour.price);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  };
+
+  const [priceRange, setPriceRange] = useState(getPriceRange());
+
+  // Update price range when tours change
+  useEffect(() => {
+    setPriceRange(getPriceRange());
+  }, [tours]);
+
+  // Handle price range change
+  const handlePriceRangeChange = (values) => {
+    setSearchParams((prev) => ({
+      ...prev,
+      minPrice: values[0],
+      maxPrice: values[1],
+    }));
+  };
 
   // Fetch all tours
   useEffect(() => {
     const fetchTours = async () => {
       setIsLoading(true);
-
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Get tours
-        const toursWithImages = sampleTours.map((tour) => initializeTourWithImage(tour));
-        setTours(toursWithImages);
-        setFilteredTours(toursWithImages);
+        const response = await axiosInstance.get("/tours");
+        const toursData = response.data.result;
+        setTours(toursData);
+        setFilteredTours(toursData);
 
         // Apply initial filter
         if (initialDestination) {
@@ -86,6 +117,7 @@ const Tours = () => {
         }
       } catch (error) {
         console.error("Error fetching tours:", error);
+        toast.error("Không thể tải danh sách tour");
       } finally {
         setIsLoading(false);
       }
@@ -105,54 +137,105 @@ const Tours = () => {
     setSearchParams(newParams);
   };
 
-  // Handle duration filter change
-  const handleDurationChange = (duration) => {
-    const newDurations = [...searchParams.duration];
-    const index = newDurations.indexOf(duration);
-
-    if (index === -1) {
-      newDurations.push(duration);
-    } else {
-      newDurations.splice(index, 1);
-    }
-
-    handleFilterChange("duration", newDurations);
-  };
-
   // Apply filters
   const applyFilters = (params = searchParams) => {
     let results = [...tours];
 
     // Filter by destination
     if (params.destination) {
-      results = results.filter((tour) => tour.location.toLowerCase().includes(params.destination.toLowerCase()));
+      results = results.filter((tour) => tour.departureLocation.toLowerCase().includes(params.destination.toLowerCase()) || tour.name.toLowerCase().includes(params.destination.toLowerCase()));
+    }
+
+    // Filter by date
+    if (params.date) {
+      const selectedDate = new Date(params.date);
+      results = results.filter((tour) => {
+        const tourDate = new Date(tour.departureDate);
+        return tourDate >= selectedDate;
+      });
     }
 
     // Filter by price range
     if (params.minPrice) {
       results = results.filter((tour) => tour.price >= parseFloat(params.minPrice));
     }
-
     if (params.maxPrice) {
       results = results.filter((tour) => tour.price <= parseFloat(params.maxPrice));
     }
 
     // Filter by duration
-    if (params.duration.length > 0) {
-      results = results.filter((tour) => {
-        const dayCount = parseInt(tour.duration.split(" ")[0]);
+    if (params.minDuration) {
+      results = results.filter((tour) => parseInt(tour.duration) >= parseInt(params.minDuration));
+    }
+    if (params.maxDuration) {
+      results = results.filter((tour) => parseInt(tour.duration) <= parseInt(params.maxDuration));
+    }
 
-        return params.duration.some((range) => {
-          if (range === "1-3 ngày") return dayCount >= 1 && dayCount <= 3;
-          if (range === "4-7 ngày") return dayCount >= 4 && dayCount <= 7;
-          if (range === "8-14 ngày") return dayCount >= 8 && dayCount <= 14;
-          if (range === "15+ ngày") return dayCount >= 15;
-          return false;
-        });
-      });
+    // Sort results
+    const sortValue = document.querySelector('select[class*="border-gray-300"]')?.value;
+    if (sortValue) {
+      switch (sortValue) {
+        case "price-asc":
+          results.sort((a, b) => a.price - b.price);
+          break;
+        case "price-desc":
+          results.sort((a, b) => b.price - a.price);
+          break;
+        case "duration-asc":
+          results.sort((a, b) => parseInt(a.duration) - parseInt(b.duration));
+          break;
+        case "duration-desc":
+          results.sort((a, b) => parseInt(b.duration) - parseInt(a.duration));
+          break;
+        case "name-asc":
+          results.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case "name-desc":
+          results.sort((a, b) => b.name.localeCompare(a.name));
+          break;
+        case "date-asc":
+          results.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
+          break;
+        case "date-desc":
+          results.sort((a, b) => new Date(b.departureDate) - new Date(a.departureDate));
+          break;
+        default:
+          // Complex sort for "Recommended"
+          results.sort((a, b) => {
+            const aFeatured = a.featured ? 1 : 0;
+            const bFeatured = b.featured ? 1 : 0;
+
+            // Prioritize featured tours (featured first)
+            if (aFeatured !== bFeatured) {
+              return bFeatured - aFeatured;
+            }
+
+            // If featured status is the same, prioritize best value (lower avg price per day)
+            const avgPriceA = a.duration > 0 ? a.price / a.duration : Infinity;
+            const avgPriceB = b.duration > 0 ? b.price / b.duration : Infinity;
+            if (avgPriceA !== avgPriceB) {
+              return avgPriceA - avgPriceB; // Lower average price per day comes first
+            }
+
+            // If featured and best value are the same, prioritize popular (higher maxPeople)
+            const aPopular = a.maxPeople || 0;
+            const bPopular = b.maxPeople || 0;
+            if (aPopular !== bPopular) {
+              return bPopular - aPopular; // Higher maxPeople comes first
+            }
+
+            // If all criteria are the same, maintain original order (or sort by name as a tie-breaker)
+            return a.name.localeCompare(b.name); // Sort by name as a tie-breaker
+          });
+      }
     }
 
     setFilteredTours(results);
+  };
+
+  // Handle sort change
+  const handleSortChange = (e) => {
+    applyFilters();
   };
 
   // Handle search form submit
@@ -169,9 +252,15 @@ const Tours = () => {
       people: "",
       minPrice: "",
       maxPrice: "",
-      duration: [],
+      minDuration: "",
+      maxDuration: "",
     });
     setFilteredTours(tours);
+    // Reset sort to default
+    const sortSelect = document.querySelector('select[class*="border-gray-300"]');
+    if (sortSelect) {
+      sortSelect.value = "recommended";
+    }
   };
 
   // Collapse/expand filters on mobile
@@ -235,7 +324,12 @@ const Tours = () => {
                         <option value="2">2 người</option>
                         <option value="3">3 người</option>
                         <option value="4">4 người</option>
-                        <option value="5+">5+ người</option>
+                        <option value="5">5 người</option>
+                        <option value="6">6 người</option>
+                        <option value="7">7 người</option>
+                        <option value="8">8 người</option>
+                        <option value="9">9 người</option>
+                        <option value="10+">10+ người</option>
                       </select>
                     </div>
                   </div>
@@ -243,28 +337,45 @@ const Tours = () => {
                   {/* Price range filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Khoảng giá</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Input type="number" placeholder="Tối thiểu" value={searchParams.minPrice} onChange={(e) => handleFilterChange("minPrice", e.target.value)} min="0" />
+                    <div className="px-2">
+                      <Slider.Root className="relative flex items-center select-none touch-none w-full h-5" value={[searchParams.minPrice || priceRange.min, searchParams.maxPrice || priceRange.max]} onValueChange={handlePriceRangeChange} max={priceRange.max} min={priceRange.min} step={100000}>
+                        <Slider.Track className="bg-gray-200 relative grow rounded-full h-2">
+                          <Slider.Range className="absolute bg-primary rounded-full h-full" />
+                        </Slider.Track>
+                        <Slider.Thumb className="block w-5 h-5 bg-white border-2 border-primary rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" aria-label="Min price" />
+                        <Slider.Thumb className="block w-5 h-5 bg-white border-2 border-primary rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" aria-label="Max price" />
+                      </Slider.Root>
+                      <div className="flex justify-between mt-2 text-sm text-gray-600">
+                        <span>{formatCurrency(searchParams.minPrice || priceRange.min)}</span>
+                        <span>{formatCurrency(searchParams.maxPrice || priceRange.max)}</span>
                       </div>
-                      <div>
-                        <Input type="number" placeholder="Tối đa" value={searchParams.maxPrice} onChange={(e) => handleFilterChange("maxPrice", e.target.value)} min="0" />
-                      </div>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {priceRanges.map((range) => (
+                        <button
+                          key={range.label}
+                          type="button"
+                          onClick={() => {
+                            setSearchParams((prev) => ({
+                              ...prev,
+                              minPrice: range.min,
+                              maxPrice: range.max === Infinity ? priceRange.max : range.max,
+                            }));
+                          }}
+                          className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${searchParams.minPrice === range.min && (searchParams.maxPrice === range.max || (range.max === Infinity && !searchParams.maxPrice)) ? "bg-primary/10 text-primary" : "text-gray-600"}`}
+                        >
+                          {range.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {/* Duration filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Thời gian</label>
-                    <div className="space-y-2">
-                      {durationOptions.map((option) => (
-                        <div key={option} className="flex items-center">
-                          <input type="checkbox" id={`duration-${option}`} checked={searchParams.duration.includes(option)} onChange={() => handleDurationChange(option)} className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                          <label htmlFor={`duration-${option}`} className="ml-2 text-gray-700">
-                            {option}
-                          </label>
-                        </div>
-                      ))}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Thời gian (số ngày)</label>
+                    <div className="flex space-x-4">
+                      <Input type="number" placeholder="Từ" value={searchParams.minDuration} onChange={(e) => handleFilterChange("minDuration", e.target.value)} min="0" className="w-1/2" />
+                      <Input type="number" placeholder="Đến" value={searchParams.maxDuration} onChange={(e) => handleFilterChange("maxDuration", e.target.value)} min="0" className="w-1/2" />
                     </div>
                   </div>
 
@@ -298,15 +409,6 @@ const Tours = () => {
                   Hiển thị {filteredTours.length} tour
                   {searchParams.destination && ` cho "${searchParams.destination}"`}
                 </p>
-                <div className="hidden md:block">
-                  <select className="border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <option value="recommended">Đề xuất</option>
-                    <option value="price-asc">Giá: Thấp đến cao</option>
-                    <option value="price-desc">Giá: Cao đến thấp</option>
-                    <option value="duration-asc">Thời gian: Ngắn đến dài</option>
-                    <option value="duration-desc">Thời gian: Dài đến ngắn</option>
-                  </select>
-                </div>
               </div>
 
               {filteredTours.length === 0 ? (
@@ -321,7 +423,7 @@ const Tours = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredTours.map((tour) => (
-                    <TourCard key={tour.id} tour={tour} onClick={() => handleTourClick(tour.id)} />
+                    <TourCard key={tour.tourId} tour={tour} onClick={() => handleTourClick(tour.tourId)} />
                   ))}
                 </div>
               )}

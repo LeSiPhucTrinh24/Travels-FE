@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Map, Users, BookOpen, MessageSquare, LogOut, Menu, X, ChevronDown, User, BarChart3, FolderTree, MapPin, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import axiosInstance from "@/utils/axiosInstance";
 
 // Menu items for the sidebar
 const menuItems = [
@@ -57,6 +60,22 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const { logout, user } = useAuth();
+  const { toast } = useToast();
+  const [adminInfo, setAdminInfo] = useState(null);
+
+  useEffect(() => {
+    const fetchAdminInfo = async () => {
+      try {
+        const response = await axiosInstance.get("/users/myInfo");
+        setAdminInfo(response.data.result);
+      } catch (error) {
+        console.error("Error fetching admin info:", error);
+      }
+    };
+
+    fetchAdminInfo();
+  }, []);
 
   // Toggle sidebar on mobile
   const toggleSidebar = () => {
@@ -64,10 +83,18 @@ const AdminLayout = () => {
   };
 
   // Handle logout
-  const handleLogout = () => {
-    // Giả lập đăng xuất và chuyển hướng về trang login
-    console.log("Logging out...");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsProfileMenuOpen(false);
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi đăng xuất",
+        description: "Đã xảy ra lỗi khi đăng xuất. Vui lòng thử lại sau.",
+      });
+    }
   };
 
   return (
@@ -129,10 +156,14 @@ const AdminLayout = () => {
               {/* User profile dropdown */}
               <div className="relative">
                 <button className="flex items-center" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                    <User className="h-5 w-5" />
-                  </div>
-                  <span className="hidden md:block ml-2 text-sm font-medium text-gray-700">Admin</span>
+                  {adminInfo?.avatar ? (
+                    <img src={adminInfo.avatar} alt="Admin avatar" className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                      <User className="h-5 w-5" />
+                    </div>
+                  )}
+                  <span className="hidden md:block ml-2 text-sm font-medium text-gray-700">{adminInfo?.fullName || adminInfo?.name || "Admin"}</span>
                   <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />
                 </button>
 

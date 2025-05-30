@@ -69,9 +69,11 @@ const Login = () => {
         userName: data.userName || "",
         phone: data.phone || "",
         address: data.address || "",
+        dob: data.dob || "",
+        avatar: data.avatar || "",
         roles: Array.isArray(data.roles) ? data.roles : [],
       };
-      
+
       // Gọi hàm login lưu user vào context
       login(userData);
 

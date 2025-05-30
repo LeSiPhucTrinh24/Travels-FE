@@ -18,7 +18,7 @@ export default function UserRoutes() {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Home />} />
         <Route path="tours" element={<Tours />} />
-        <Route path="tours/:id" element={<TourDetail />} />
+        <Route path="tours/:tourId" element={<TourDetail />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />

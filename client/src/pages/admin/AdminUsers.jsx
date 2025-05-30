@@ -1,33 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Edit, Trash2, Filter, ArrowUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axiosInstance from "@/utils/axiosInstance";
+import { toast } from "react-toastify";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock users data
-  const users = [
-    { id: 1, name: "Nguyễn Văn A", email: "nguyenvana@example.com", phone: "0912345678", isAdmin: false, status: "active", createdAt: "12/04/2025" },
-    { id: 2, name: "Trần Thị B", email: "tranthib@example.com", phone: "0923456789", isAdmin: false, status: "active", createdAt: "10/04/2025" },
-    { id: 3, name: "Lê Văn C", email: "levanc@example.com", phone: "0934567890", isAdmin: false, status: "active", createdAt: "08/04/2025" },
-    { id: 4, name: "Phạm Thị D", email: "phamthid@example.com", phone: "0945678901", isAdmin: true, status: "active", createdAt: "05/04/2025" },
-    { id: 5, name: "Hoàng Văn E", email: "hoangvane@example.com", phone: "0956789012", isAdmin: false, status: "inactive", createdAt: "01/04/2025" },
-  ];
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  // Filter users based on search term
-  const filteredUsers = users.filter((user) => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()) || user.phone.includes(searchTerm));
-
-  const handleEdit = (user) => {
-    navigate(`/admin/users/edit/${user.id}`, { state: { user } });
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await axiosInstance.get("/users");
+      setUsers(res.data.result);
+    } catch (err) {
+      toast.error("Không thể tải danh sách người dùng");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = (userId) => {
+  // Filter users based on search term và chỉ lấy khách hàng
+  const filteredUsers = users.filter((user) => (user.fullName || user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.userName || user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.phone || "").includes(searchTerm));
+
+  const handleEdit = (user) => {
+    navigate(`/admin/users/edit/${user.userId || user.id}`);
+  };
+
+  const handleDelete = async (userId) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
-      console.log("Deleting user:", userId);
-      // TODO: Implement delete API call
+      try {
+        await axiosInstance.delete(`/users/${userId}`);
+        toast.success("Xóa người dùng thành công");
+        fetchUsers();
+      } catch (err) {
+        toast.error("Không thể xóa người dùng");
+      }
     }
   };
 
@@ -65,48 +81,61 @@ const ManageUsers = () => {
           <table className="w-full border-collapse">
             <thead className="bg-gray-50">
               <tr>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vai trò</th>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="py-4 px-4 text-sm text-gray-900">{user.id}</td>
-                  <td className="py-4 px-4 text-sm text-gray-900">
-                    <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-100">
-                      {user.image ? <img src={user.image} alt={user.name} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center bg-gray-200 text-gray-500">{user.name.charAt(0).toUpperCase()}</div>}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900">{user.name}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{user.email}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{user.phone}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${user.isAdmin ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>{user.isAdmin ? "Admin" : "Khách hàng"}</span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${user.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{user.status === "active" ? "Hoạt động" : "Vô hiệu"}</span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{user.createdAt}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(user)}>
-                        <Edit className="h-4 w-4 text-blue-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(user.id)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="text-center py-8">
+                    Đang tải...
                   </td>
                 </tr>
-              ))}
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="text-center py-8">
+                    Không có người dùng nào
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user, idx) => (
+                  <tr key={user.userId || user.id} className="hover:bg-gray-50">
+                    <td className="py-4 px-4 text-sm text-gray-900">{idx + 1}</td>
+                    <td className="py-4 px-4 text-sm text-gray-900">
+                      <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-100">
+                        {user.avatar || user.image ? (
+                          <img src={user.avatar || user.image} alt={user.fullName || user.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gray-200 text-gray-500">{(user.fullName || user.name || "?").charAt(0).toUpperCase()}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900">{user.fullName || user.name}</td>
+                    <td className="py-4 px-4 text-sm text-gray-500">{user.userName || user.email}</td>
+                    <td className="py-4 px-4 text-sm text-gray-500">{user.phone}</td>
+                    <td className="py-4 px-4 text-sm text-gray-500">
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${user.roles && user.roles.includes("ADMIN") ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>{user.roles && user.roles.includes("ADMIN") ? "Admin" : "Khách hàng"}</span>
+                    </td>
+
+                    <td className="py-4 px-4 text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(user)}>
+                          <Edit className="h-4 w-4 text-blue-500" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(user.userId || user.id)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
 
