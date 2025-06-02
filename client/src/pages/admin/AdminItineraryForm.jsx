@@ -109,19 +109,53 @@ const AdminItineraryForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Validate required fields
+    if (!formData.tourId || !formData.dayTitle || !formData.dayNumber || !formData.destinationId) {
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      // Log the raw form data
+      console.log("Raw form data:", formData);
+
       const dataToSend = {
         tourId: formData.tourId,
-        dayTitle: formData.dayTitle,
-        dayNumber: formData.dayNumber ? Number(formData.dayNumber) : null,
-        description: formData.description,
+        dayTitle: formData.dayTitle.trim(),
+        dayNumber: parseInt(formData.dayNumber, 10),
+        description: formData.description.trim() || "", // Ensure description is never null
         destinationId: formData.destinationId,
       };
 
-      console.log("Data gửi lên:", dataToSend);
+      // Log the processed data being sent
+      console.log("Data being sent to server:", dataToSend);
 
+      // Validate dayNumber is a positive integer
+      if (isNaN(dataToSend.dayNumber) || dataToSend.dayNumber <= 0) {
+        toast.error("Số ngày phải là số nguyên dương");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate other fields
+      if (!dataToSend.tourId || typeof dataToSend.tourId !== "string") {
+        toast.error("Tour ID không hợp lệ");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!dataToSend.destinationId || typeof dataToSend.destinationId !== "string") {
+        toast.error("Destination ID không hợp lệ");
+        setIsLoading(false);
+        return;
+      }
+
+      let response;
       if (isEditMode) {
-        await axiosInstance.put(`/itineraries/${itineraryId}`, dataToSend, {
+        console.log("Sending PUT request to:", `/itineraries/${itineraryId}`);
+        response = await axiosInstance.put(`/itineraries/${itineraryId}`, dataToSend, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "application/json",
@@ -129,7 +163,8 @@ const AdminItineraryForm = () => {
         });
         toast.success("Cập nhật hành trình thành công!");
       } else {
-        await axiosInstance.post("/itineraries", dataToSend, {
+        console.log("Sending POST request to:", "/itineraries");
+        response = await axiosInstance.post("/itineraries", dataToSend, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "application/json",
@@ -137,10 +172,23 @@ const AdminItineraryForm = () => {
         });
         toast.success("Thêm hành trình mới thành công!");
       }
-      navigate("/admin/itineraries");
+
+      // Log the response
+      console.log("Server response:", response.data);
+
+      // Check if the response contains the expected data
+      if (response.data && response.data.result) {
+        navigate("/admin/itineraries");
+      } else {
+        throw new Error("Invalid response format from server");
+      }
     } catch (error) {
-      console.error("Error saving itinerary:", error, error.response?.data);
-      toast.error(error.response?.data?.message || JSON.stringify(error.response?.data) || (isEditMode ? "Không thể cập nhật hành trình" : "Không thể thêm hành trình mới"));
+      console.error("Error saving itinerary:", error);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error response status:", error.response?.status);
+
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || (isEditMode ? "Không thể cập nhật hành trình" : "Không thể thêm hành trình mới");
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -181,41 +229,18 @@ const AdminItineraryForm = () => {
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Tiêu đề ngày</label>
-            <Input
-              name="dayTitle"
-              value={formData.dayTitle}
-              onChange={handleInputChange}
-              placeholder="Nhập tiêu đề ngày (ví dụ: Ngày 1 - Khám phá thành phố)"
-              className="mt-1"
-            />
+            <Input name="dayTitle" value={formData.dayTitle} onChange={handleInputChange} placeholder="Nhập tiêu đề ngày (ví dụ: Ngày 1 - Khám phá thành phố)" className="mt-1" />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-gray-500" />
               Số ngày
             </label>
-            <Input
-              type="number"
-              name="dayNumber"
-              value={formData.dayNumber}
-              onChange={handleInputChange}
-              placeholder="Nhập số ngày (ví dụ: 1)"
-              required
-              min="1"
-              className="mt-1"
-            />
+            <Input type="number" name="dayNumber" value={formData.dayNumber} onChange={handleInputChange} placeholder="Nhập số ngày (ví dụ: 1)" required min="1" className="mt-1" />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Mô tả</label>
-            <Textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Nhập mô tả hành trình"
-              required
-              rows={3}
-              className="mt-1"
-            />
+            <Textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Nhập mô tả hành trình" required rows={3} className="mt-1" />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">

@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Edit, Trash2, Eye, Filter, ArrowUpDown } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Eye, Filter, ArrowUpDown, X } from "lucide-react";
 import AdminTourDetail from "./AdminTourDetail";
 import { toast } from "react-toastify";
 import axiosInstance from "@/utils/axiosInstance";
 import { useLocation } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Format currency
 const formatCurrency = (value) => {
@@ -26,6 +27,13 @@ const ManageTours = () => {
   const [tours, setTours] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState([]);
+  const [filters, setFilters] = useState({
+    status: "",
+    featured: "",
+    priceRange: "",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Fetch tours on component mount
   useEffect(() => {
@@ -129,8 +137,21 @@ const ManageTours = () => {
     }
   };
 
-  // Filter tours based on search term
-  const filteredTours = tours.filter((tour) => tour.name.toLowerCase().includes(searchTerm.toLowerCase()) || tour.location.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Filter tours based on search criteria
+  const filteredTours = tours.filter((tour) => {
+    const matchesSearch = (tour.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || (tour.location?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTours.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTours = filteredTours.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   if (isLoading) {
     return (
@@ -152,22 +173,14 @@ const ManageTours = () => {
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input type="text" placeholder="Tìm kiếm tour..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-1/2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Input type="text" placeholder="Tìm kiếm theo tên tour hoặc địa điểm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="whitespace-nowrap">
-                <Filter className="w-4 h-4 mr-2" />
-                Lọc
-              </Button>
-              <Button variant="outline" className="whitespace-nowrap">
-                <ArrowUpDown className="w-4 h-4 mr-2" />
-                Sắp xếp
-              </Button>
             </div>
           </div>
         </div>
@@ -188,14 +201,14 @@ const ManageTours = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredTours.map((tour, idx) => (
+              {currentTours.map((tour, idx) => (
                 <tr key={tour.tourId} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetail(tour)}>
-                  <td className="py-4 px-4 text-sm text-gray-900">{idx + 1}</td>
+                  <td className="py-4 px-4 text-sm text-gray-900">{startIndex + idx + 1}</td>
                   <td className="py-4 px-4 text-sm">{tour.coverImage && <img src={tour.coverImage} alt={tour.name} className="w-20 h-14 object-cover rounded" />}</td>
                   <td className="py-4 px-4 text-sm font-medium text-gray-900">{tour.name}</td>
                   <td className="py-4 px-4 text-sm text-gray-500">{tour.departureDate ? new Date(tour.departureDate).toLocaleDateString("vi-VN") : ""}</td>
                   <td className="py-4 px-4 text-sm text-gray-900 font-medium">{formatCurrency(tour.price)}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{tour.duration}</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">{tour.duration} ngày</td>
                   <td className="py-4 px-4 text-sm text-gray-500">
                     <button
                       onClick={(e) => {
@@ -245,16 +258,18 @@ const ManageTours = () => {
 
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 flex justify-between items-center">
           <div className="text-xs text-gray-500">
-            Hiển thị {filteredTours.length} của {tours.length} tour
+            Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredTours.length)} của {filteredTours.length} tour
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" disabled>
+            <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
               Trước
             </Button>
-            <Button variant="outline" size="sm" className="bg-primary text-white">
-              1
-            </Button>
-            <Button variant="outline" size="sm" disabled>
+            {[...Array(totalPages)].map((_, index) => (
+              <Button key={index + 1} variant={currentPage === index + 1 ? "default" : "outline"} size="sm" onClick={() => handlePageChange(index + 1)} className={currentPage === index + 1 ? "bg-primary text-white" : ""}>
+                {index + 1}
+              </Button>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
               Sau
             </Button>
           </div>

@@ -49,7 +49,7 @@ const AdminTourDetail = ({ tour, isOpen, onClose, categories = [] }) => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Thời gian</p>
-                <p className="font-medium">{tour.duration}</p>
+                <p className="font-medium">{tour.duration} ngày</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Ngày khởi hành</p>

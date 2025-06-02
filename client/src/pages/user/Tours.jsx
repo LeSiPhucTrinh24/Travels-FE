@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { MapPin, Calendar, Users, Filter, ChevronDown, ChevronUp, Star, Search, X } from "lucide-react";
+import { MapPin, Calendar, Users, Filter, ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import * as Slider from "@radix-ui/react-slider";
@@ -54,6 +54,7 @@ const Tours = () => {
   const [filteredTours, setFilteredTours] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const [tourTypes, setTourTypes] = useState([]);
 
   // Filter state
   const [searchParams, setSearchParams] = useState({
@@ -64,6 +65,7 @@ const Tours = () => {
     maxPrice: "",
     minDuration: "",
     maxDuration: "",
+    tourTypeId: "",
   });
 
   // Price range options
@@ -107,14 +109,42 @@ const Tours = () => {
       setIsLoading(true);
       try {
         const response = await axiosInstance.get("/tours");
-        const toursData = response.data.result;
-        setTours(toursData);
-        setFilteredTours(toursData);
+        const currentDate = new Date();
 
-        // Apply initial filter
-        if (initialDestination) {
-          applyFilters({ ...searchParams, destination: initialDestination });
-        }
+        const activeTours = response.data.result
+          .map((tour) => {
+            const departureDate = new Date(tour.departureDate);
+            const isExpired = departureDate < currentDate;
+
+            if (isExpired && (tour.status === true || tour.status === "true")) {
+              axiosInstance
+                .put(
+                  `/tours/${tour.tourId}`,
+                  {
+                    ...tour,
+                    status: false,
+                  },
+                  {
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem("token")}`,
+                      "Content-Type": "multipart/form-data",
+                    },
+                  }
+                )
+                .catch((error) => {
+                  console.error("Error updating tour status:", error);
+                });
+            }
+
+            return {
+              ...tour,
+              status: !isExpired && (tour.status === true || tour.status === "true"),
+            };
+          })
+          .filter((tour) => tour.status === true);
+
+        setTours(activeTours);
+        setFilteredTours(activeTours);
       } catch (error) {
         console.error("Error fetching tours:", error);
         toast.error("Không thể tải danh sách tour");
@@ -124,7 +154,27 @@ const Tours = () => {
     };
 
     fetchTours();
-  }, [initialDestination]);
+  }, []);
+
+  // Fetch tour types
+  useEffect(() => {
+    const fetchTourTypes = async () => {
+      try {
+        const response = await axiosInstance.get("/tourTypes");
+        setTourTypes(response.data.result || []);
+      } catch (error) {
+        console.error("Error fetching tour types:", error);
+        toast.error("Không thể tải danh sách loại tour");
+      }
+    };
+
+    fetchTourTypes();
+  }, []);
+
+  // Tự động áp dụng bộ lọc khi searchParams thay đổi
+  useEffect(() => {
+    applyFilters(searchParams);
+  }, [searchParams, tours]); // Chạy lại khi searchParams hoặc tour du lịch thay đổi
 
   // Handle tour card click
   const handleTourClick = (tourId) => {
@@ -143,7 +193,12 @@ const Tours = () => {
 
     // Filter by destination
     if (params.destination) {
-      results = results.filter((tour) => tour.departureLocation.toLowerCase().includes(params.destination.toLowerCase()) || tour.name.toLowerCase().includes(params.destination.toLowerCase()));
+      results = results.filter((tour) => tour.destination.toLowerCase().includes(params.destination.toLowerCase()));
+    }
+
+    // Filter by tour type
+    if (params.tourTypeId) {
+      results = results.filter((tour) => tour.tourTypeId === params.tourTypeId);
     }
 
     // Filter by date
@@ -171,71 +226,7 @@ const Tours = () => {
       results = results.filter((tour) => parseInt(tour.duration) <= parseInt(params.maxDuration));
     }
 
-    // Sort results
-    const sortValue = document.querySelector('select[class*="border-gray-300"]')?.value;
-    if (sortValue) {
-      switch (sortValue) {
-        case "price-asc":
-          results.sort((a, b) => a.price - b.price);
-          break;
-        case "price-desc":
-          results.sort((a, b) => b.price - a.price);
-          break;
-        case "duration-asc":
-          results.sort((a, b) => parseInt(a.duration) - parseInt(b.duration));
-          break;
-        case "duration-desc":
-          results.sort((a, b) => parseInt(b.duration) - parseInt(a.duration));
-          break;
-        case "name-asc":
-          results.sort((a, b) => a.name.localeCompare(b.name));
-          break;
-        case "name-desc":
-          results.sort((a, b) => b.name.localeCompare(a.name));
-          break;
-        case "date-asc":
-          results.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
-          break;
-        case "date-desc":
-          results.sort((a, b) => new Date(b.departureDate) - new Date(a.departureDate));
-          break;
-        default:
-          // Complex sort for "Recommended"
-          results.sort((a, b) => {
-            const aFeatured = a.featured ? 1 : 0;
-            const bFeatured = b.featured ? 1 : 0;
-
-            // Prioritize featured tours (featured first)
-            if (aFeatured !== bFeatured) {
-              return bFeatured - aFeatured;
-            }
-
-            // If featured status is the same, prioritize best value (lower avg price per day)
-            const avgPriceA = a.duration > 0 ? a.price / a.duration : Infinity;
-            const avgPriceB = b.duration > 0 ? b.price / b.duration : Infinity;
-            if (avgPriceA !== avgPriceB) {
-              return avgPriceA - avgPriceB; // Lower average price per day comes first
-            }
-
-            // If featured and best value are the same, prioritize popular (higher maxPeople)
-            const aPopular = a.maxPeople || 0;
-            const bPopular = b.maxPeople || 0;
-            if (aPopular !== bPopular) {
-              return bPopular - aPopular; // Higher maxPeople comes first
-            }
-
-            // If all criteria are the same, maintain original order (or sort by name as a tie-breaker)
-            return a.name.localeCompare(b.name); // Sort by name as a tie-breaker
-          });
-      }
-    }
-
     setFilteredTours(results);
-  };
-
-  // Handle sort change
-  const handleSortChange = (e) => {
-    applyFilters();
   };
 
   // Handle search form submit
@@ -254,13 +245,8 @@ const Tours = () => {
       maxPrice: "",
       minDuration: "",
       maxDuration: "",
+      tourTypeId: "",
     });
-    setFilteredTours(tours);
-    // Reset sort to default
-    const sortSelect = document.querySelector('select[class*="border-gray-300"]');
-    if (sortSelect) {
-      sortSelect.value = "recommended";
-    }
   };
 
   // Collapse/expand filters on mobile
@@ -289,6 +275,21 @@ const Tours = () => {
             {filtersOpen && (
               <form onSubmit={handleSearchSubmit}>
                 <div className="space-y-6">
+                  {/* Tour type filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Loại tour</label>
+                    <div className="relative">
+                      <select value={searchParams.tourTypeId} onChange={(e) => handleFilterChange("tourTypeId", e.target.value)} className="w-full py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="">--Chọn loại tour--</option>
+                        {tourTypes.map((type) => (
+                          <option key={type.tourTypeId} value={type.tourTypeId}>
+                            {type.tourTypeName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Destination filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Điểm đến</label>

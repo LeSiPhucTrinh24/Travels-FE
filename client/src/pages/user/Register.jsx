@@ -100,7 +100,7 @@ const Register = () => {
 
             <div>
               <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
-                userName
+                Tên đăng nhập
               </label>
               <Input id="userName" name="userName" type="userName" required value={formData.userName} onChange={handleChange} placeholder="example@gmail.com" />
             </div>
