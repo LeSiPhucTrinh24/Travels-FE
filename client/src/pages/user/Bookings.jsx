@@ -18,59 +18,76 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
-// Format date
+// Format date (updated to include time)
 const formatDate = (dateString) => {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
-    // Use padStart to ensure day and month are two digits
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth() is 0-indexed
-    const year = date.getFullYear();
-    // Format as DD/MM/YYYY
-    return `${day}/${month}/${year}`;
+    // Format as hour:minute:second day/month/year
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false, // Use 24-hour format
+    });
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString; // Return original string if formatting fails
   }
 };
 
+// Format date (date only)
+const formatDateOnly = (dateString) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    // Format as day/month/year
+    return date.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString; // Return original string if formatting fails
+  }
+};
+
+// Booking Status Component (updated to handle integer status)
 const BookingStatus = ({ status }) => {
-  let bgColor, textColor, icon;
+  let bgColor, textColor, text;
 
   switch (status) {
-    case "confirmed":
+    case 1:
       bgColor = "bg-green-100";
       textColor = "text-green-800";
-      icon = <CheckCircle className="h-4 w-4 mr-1.5" />;
+      text = "Đã xác nhận";
       break;
-    case "pending":
-      bgColor = "bg-yellow-100";
-      textColor = "text-yellow-800";
-      icon = <Clock className="h-4 w-4 mr-1.5" />;
-      break;
-    case "cancelled":
+    case 2:
       bgColor = "bg-red-100";
       textColor = "text-red-800";
-      icon = <X className="h-4 w-4 mr-1.5" />;
+      text = "Đã hủy";
       break;
+    case 0:
     default:
-      bgColor = "bg-gray-100";
-      textColor = "text-gray-800";
-      icon = <AlertCircle className="h-4 w-4 mr-1.5" />;
+      bgColor = "bg-yellow-100";
+      textColor = "text-yellow-800";
+      text = "Đang chờ duyệt";
   }
 
   return (
     <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
-      {icon}
-      {status === "confirmed" && "Đã xác nhận"}
-      {status === "pending" && "Đang chờ xác nhận"}
-      {status === "cancelled" && "Đã hủy"}
+      {/* Icon logic can be added here if needed, based on status value */}
+      {text}
     </div>
   );
 };
 
 const Bookings = () => {
+  // Use "all" for initial filter, other tabs will use numeric states 0, 1, 2
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedBookingId, setExpandedBookingId] = useState(null);
@@ -101,6 +118,7 @@ const Bookings = () => {
 
   // Filter bookings based on active tab and search query
   const filteredBookings = bookings.filter((booking) => {
+    // Match status based on numeric value from backend and active tab filter
     const matchesTab = activeTab === "all" || booking.status === activeTab;
 
     const matchesSearch = searchQuery === "" || (booking.tour?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.tour?.destination || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.bookingId || "").toString().includes(searchQuery);
@@ -117,20 +135,42 @@ const Bookings = () => {
     }
   };
 
-  // Handle booking cancellation
+  // Handle booking cancellation (now updates status to cancelled)
   const handleCancelBooking = async (bookingId) => {
     if (window.confirm("Bạn có chắc chắn muốn hủy đơn đặt tour này không?")) {
       try {
-        // Assuming backend expects a PUT request with updated status in body
+        // Call PUT API to update the booking status to cancelled (status 2)
         const response = await axiosInstance.put(`/booking/${bookingId}`, {
-          status: "cancelled", // Send the new status
-          // Include other necessary fields if backend requires full object update
-          // E.g., numberOfPeople, totalPrice, bookingDate, etc.
-          // For now, assuming only status is required for this update endpoint.
+          status: 2, // Send the numeric status value for cancelled (2)
         });
 
-        console.log("Booking cancelled successfully:", response.data);
-        toast.success("Đơn đặt tour đã được hủy.");
+        // Find the booking to get tour information
+        const booking = bookings.find((b) => b.bookingId === bookingId);
+        if (booking) {
+          // Update tour's available slots
+          const formData = new FormData();
+          formData.append("name", booking.tour.name);
+          formData.append("description", booking.tour.description);
+          formData.append("price", booking.tour.price);
+          formData.append("duration", booking.tour.duration);
+          formData.append("departureDate", booking.tour.departureDate);
+          formData.append("departureLocation", booking.tour.departureLocation);
+          formData.append("maxPeople", booking.tour.maxPeople + booking.numberOfPeople); // Add back the cancelled slots
+          formData.append("tourTypeId", booking.tour.tourTypeId);
+          formData.append("status", booking.tour.status);
+          formData.append("featured", booking.tour.featured);
+          formData.append("coverImage", booking.tour.coverImage); // Add back the cover image
+
+          await axiosInstance.put(`/tours/${booking.tourId}`, formData, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "multipart/form-data",
+            },
+          });
+        }
+
+        console.log("Booking status updated to cancelled:", response.data);
+        toast.success("Đơn đặt tour đã được hủy thành công.");
         refetch(); // Refetch the bookings list to update the UI
       } catch (error) {
         console.error("Error cancelling booking:", error);
@@ -157,18 +197,18 @@ const Bookings = () => {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Đặt tour của tôi</h1>
 
-        {/* Tabs */}
+        {/* Tabs (updated to use numeric values) */}
         <div className="flex border-b mb-6">
           <button className={`px-4 py-2 font-medium text-sm ${activeTab === "all" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("all")}>
             Tất cả
           </button>
-          <button className={`px-4 py-2 font-medium text-sm ${activeTab === "confirmed" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("confirmed")}>
+          <button className={`px-4 py-2 font-medium text-sm ${activeTab === 1 ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab(1)}>
             Đã xác nhận
           </button>
-          <button className={`px-4 py-2 font-medium text-sm ${activeTab === "pending" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("pending")}>
-            Đang chờ
+          <button className={`px-4 py-2 font-medium text-sm ${activeTab === 0 ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab(0)}>
+            Đang chờ duyệt
           </button>
-          <button className={`px-4 py-2 font-medium text-sm ${activeTab === "cancelled" ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("cancelled")}>
+          <button className={`px-4 py-2 font-medium text-sm ${activeTab === 2 ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab(2)}>
             Đã hủy
           </button>
         </div>
@@ -205,7 +245,7 @@ const Bookings = () => {
           <div className="bg-gray-50 border rounded-lg p-8 text-center">
             <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
             <h3 className="text-lg font-bold mb-2">
-              {searchQuery ? "Không tìm thấy đặt tour phù hợp" : activeTab === "all" ? "Bạn chưa có đặt tour nào" : activeTab === "confirmed" ? "Bạn chưa có đặt tour nào đã xác nhận" : activeTab === "pending" ? "Bạn chưa có đặt tour nào đang chờ xác nhận" : "Bạn chưa có đặt tour nào đã hủy"}
+              {searchQuery ? "Không tìm thấy đặt tour phù hợp" : activeTab === "all" ? "Bạn chưa có đặt tour nào" : activeTab === 1 ? "Bạn chưa có đặt tour nào đã xác nhận" : activeTab === 0 ? "Bạn chưa có đặt tour nào đang chờ duyệt" : "Bạn chưa có đặt tour nào đã hủy"}
             </h3>
             <p className="text-gray-500 mb-4">{searchQuery ? "Vui lòng thử tìm kiếm với từ khóa khác" : "Hãy khám phá các tour du lịch hấp dẫn của chúng tôi"}</p>
             <Link to="/tours">
@@ -223,6 +263,7 @@ const Bookings = () => {
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                         <h3 className="font-bold text-lg">{booking.tour?.name}</h3>
+                        {/* Pass numeric status to BookingStatus component */}
                         <BookingStatus status={booking.status} />
                       </div>
 
@@ -237,7 +278,7 @@ const Bookings = () => {
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span>Ngày khởi hành: {formatDate(booking.tour?.departureDate)}</span>
+                          <span>Ngày khởi hành: {formatDateOnly(booking.tour?.departureDate)}</span>
                         </div>
                         <div className="flex items-center">
                           <User className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
@@ -266,7 +307,7 @@ const Bookings = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Ngày khởi hành:</span>
-                            <span>{formatDate(booking.tour?.departureDate)}</span>
+                            <span>{formatDateOnly(booking.tour?.departureDate)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Khách hàng:</span>
@@ -290,12 +331,13 @@ const Bookings = () => {
                             <span className="text-gray-500">Trạng thái:</span>
                             <span
                               className={`
-                                ${booking.status === "confirmed" ? "text-green-600" : booking.status === "pending" ? "text-yellow-600" : "text-red-600"}
+                                ${booking.status === 1 ? "text-green-600" : booking.status === 0 ? "text-yellow-600" : "text-red-600"}
                               `}
                             >
-                              {booking.status === "confirmed" && "Đã xác nhận"}
-                              {booking.status === "pending" && "Chờ xác nhận"}
-                              {booking.status === "cancelled" && "Đã hủy"}
+                              {/* Display status text based on numeric value */}
+                              {booking.status === 1 && "Đã xác nhận"}
+                              {booking.status === 0 && "Đang chờ duyệt"}
+                              {booking.status === 2 && "Đã hủy"}
                             </span>
                           </div>
                         </div>
@@ -308,14 +350,16 @@ const Bookings = () => {
                         Xem chi tiết
                       </Button>
 
-                      {booking.status === "pending" && (
+                      {/* Show cancel button only if status is 0 (Pending) */}
+                      {booking.status === 0 && (
                         <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleCancelBooking(booking.bookingId)}>
                           <X className="h-4 w-4 mr-2" />
                           Hủy đặt tour
                         </Button>
                       )}
 
-                      {booking.status === "cancelled" && (
+                      {/* Show rebook button if status is 2 (Cancelled) */}
+                      {booking.status === 2 && (
                         <Link to={`/tours/${booking.tourId}`}>
                           <Button>Đặt lại tour này</Button>
                         </Link>

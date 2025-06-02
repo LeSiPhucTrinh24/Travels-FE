@@ -30,6 +30,7 @@ const AdminTourForm = () => {
     tourTypeId: "",
     status: true,
     featured: false,
+    destination: "",
   });
 
   const [categories, setCategories] = useState([]);
@@ -77,6 +78,7 @@ const AdminTourForm = () => {
       setIsLoading(true);
       const response = await axiosInstance.get(`/tours/${tourId}`);
       const tour = response.data.result;
+      console.log("Tour data from API:", tour);
       setFormData({
         name: tour.name || "",
         description: tour.description || "",
@@ -89,7 +91,9 @@ const AdminTourForm = () => {
         tourTypeId: tour.tourTypeId || "",
         status: tour.status ?? true,
         featured: tour.featured === true || tour.featured === "true",
+        destination: tour.destination || "",
       });
+      console.log("Form data after setting:", formData);
       if (tour.coverImage) {
         setPreviewUrl(tour.coverImage);
       }
@@ -179,15 +183,23 @@ const AdminTourForm = () => {
       formDataToSend.append("tourTypeId", formData.tourTypeId);
       formDataToSend.append("status", formData.status === true || formData.status === "true" ? "true" : "false");
       formDataToSend.append("featured", formData.featured === true || formData.featured === "true" ? "true" : "false");
+      formDataToSend.append("destination", formData.destination || "");
+
+      // Xử lý coverImage
       if (image) {
         formDataToSend.append("file", image);
       } else if (formData.coverImage) {
         formDataToSend.append("coverImage", formData.coverImage);
       }
-      // Log giá trị coverImage để kiểm tra
-      console.log("coverImage gửi lên:", formData.coverImage);
-      // Log toàn bộ FormData để debug
-      console.log("FormData gửi lên:", [...formDataToSend.entries()]);
+
+      // Log để debug
+      console.log("Form data before sending:", {
+        ...formData,
+        destination: formData.destination,
+        coverImage: formData.coverImage,
+        image: image ? "File present" : "No file",
+      });
+      console.log("FormData entries:", [...formDataToSend.entries()]);
       if (isEditMode) {
         await axiosInstance.put(`/tours/${tourId}`, formDataToSend, {
           headers: {
@@ -207,7 +219,14 @@ const AdminTourForm = () => {
       }
       navigate("/admin/tours");
     } catch (error) {
-      console.error("Error saving tour:", error, error.response?.data);
+      console.error("Error saving tour:", error);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error response status:", error.response?.status);
+      console.error("Form data being sent:", {
+        ...formData,
+        coverImage: formData.coverImage,
+        image: image ? "File present" : "No file",
+      });
       toast.error(error.response?.data?.message || JSON.stringify(error.response?.data) || (isEditMode ? "Không thể cập nhật tour" : "Không thể thêm tour mới"));
     } finally {
       setIsLoading(false);
@@ -287,6 +306,13 @@ const AdminTourForm = () => {
                 Điểm khởi hành
               </label>
               <Input name="departureLocation" value={formData.departureLocation} onChange={handleInputChange} placeholder="Nhập điểm khởi hành" required className="mt-1" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gray-500" />
+                Điểm đến
+              </label>
+              <Input name="destination" value={formData.destination} onChange={handleInputChange} placeholder="Nhập điểm đến" required className="mt-1" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
