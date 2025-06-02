@@ -21,6 +21,7 @@ const ManageUsers = () => {
     try {
       const res = await axiosInstance.get("/users");
       setUsers(res.data.result);
+      console.log("data: ", users)
     } catch (err) {
       toast.error("Không thể tải danh sách người dùng");
     } finally {
