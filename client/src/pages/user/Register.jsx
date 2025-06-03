@@ -17,6 +17,9 @@ const Register = () => {
     confirmPassword: "",
   });
 
+  // Email format validation regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -31,24 +34,29 @@ const Register = () => {
 
     const { fullName, userName, password } = formData;
 
-    // Kiểm tra mật khẩu khớp nhau
+    // Validate email format
+    if (!emailRegex.test(userName)) {
+      setError("Vui lòng nhập địa chỉ email hợp lệ.");
+      return;
+    }
+
+    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.");
       return;
     }
 
-    const { data } = await axios.post("http://localhost:8080/travel/auth/register", { fullName, userName, password });
-
     setIsLoading(true);
 
     try {
-      // Giả lập gọi API
+      const { data } = await axios.post("http://localhost:8080/travel/auth/register", { fullName, userName, password });
+
+      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Trong ứng dụng thực tế, sẽ gọi API để tạo tài khoản
       console.log("Dữ liệu đăng ký:", formData);
 
-      // Chuyển hướng đến trang đăng nhập sau khi đăng ký thành công
+      // Redirect to login page after successful registration
       navigate("/login");
     } catch (error) {
       console.error("Lỗi đăng ký:", error);
@@ -102,7 +110,15 @@ const Register = () => {
               <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
                 Tên đăng nhập
               </label>
-              <Input id="userName" name="userName" type="userName" required value={formData.userName} onChange={handleChange} placeholder="example@gmail.com" />
+              <Input
+                id="userName"
+                name="userName"
+                type="email"
+                required
+                value={formData.userName}
+                onChange={handleChange}
+                placeholder="example@gmail.com"
+              />
             </div>
 
             <div>

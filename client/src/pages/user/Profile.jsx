@@ -153,7 +153,6 @@ const Profile = () => {
     }
 
     setIsLoading(true);
-    try {
       const dobValue = profileForm.birthdate ? profileForm.birthdate : "";
       const formData = new FormData();
       formData.append("fullName", profileForm.name);
@@ -173,7 +172,6 @@ const Profile = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-
       toast({
         title: "Cập nhật thành công",
         description: "Thông tin cá nhân của bạn đã được cập nhật",

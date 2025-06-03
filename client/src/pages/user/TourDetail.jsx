@@ -49,11 +49,82 @@ const TourDetail = () => {
   const [isLoadingImages, setIsLoadingImages] = useState(true);
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [successfulBookingData, setSuccessfulBookingData] = useState(null);
-  const [itineraries, setItineraries] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
+  // Thêm các state mới để quản lý chỉnh sửa đánh giá
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editingRating, setEditingRating] = useState(0);
+  const [editingText, setEditingText] = useState("");
+  const [isEditingReview, setIsEditingReview] = useState(false);
+
+  // Hàm xử lý khi nhấn nút "Chỉnh sửa"
+  const handleEditReview = (review) => {
+    setEditingReviewId(review.reviewId);
+    setEditingRating(review.rating);
+    setEditingText(review.content);
+  };
+
+  // Hàm hủy chỉnh sửa
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setEditingRating(0);
+    setEditingText("");
+  };
+
+  // Hàm xử lý gửi yêu cầu chỉnh sửa đánh giá
+  const handleUpdateReview = async (e) => {
+    e.preventDefault();
+    if (editingRating < 1 || editingRating > 5) {
+      toast.error("Vui lòng chọn số sao từ 1 đến 5");
+      return;
+    }
+
+    if (!editingText.trim()) {
+      toast.error("Vui lòng nhập nhận xét của bạn");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("Vui lòng đăng nhập để chỉnh sửa đánh giá.");
+      return;
+    }
+
+    setIsEditingReview(true);
+    try {
+      const reviewData = {
+        userId: user.id,
+        rating: editingRating,
+        content: editingText,
+      };
+
+      const response = await axiosInstance.put(`/tours/reviews/${editingReviewId}`, reviewData);
+      console.log("Review updated successfully:", response.data);
+
+      // Gọi lại API để lấy danh sách đánh giá mới
+      const updatedResponse = await axiosInstance.get(`/tours/${tourId}/reviews`);
+      setReviews(updatedResponse.data.result || []);
+
+      toast.success("Cập nhật đánh giá thành công!");
+      setEditingReviewId(null);
+      setEditingRating(0);
+      setEditingText("");
+    } catch (error) {
+      console.error("Error updating review:", error);
+      if (error.response) {
+        toast.error(error.response.data.message || "Có lỗi xảy ra khi cập nhật đánh giá");
+      } else {
+        toast.error("Không thể cập nhật đánh giá. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsEditingReview(false);
+    }
+  };
+
+  // Fetch tour and reviews when component mounts
   useEffect(() => {
+    console.log("TourDetail useEffect running for tourId:", tourId);
+
     const fetchTour = async () => {
       setIsLoading(true);
       try {
@@ -68,10 +139,15 @@ const TourDetail = () => {
         console.log("Processed itineraries:", tourItineraries);
         setItineraries(tourItineraries);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching tour:", error);
         if (error.response) {
           console.error("Error response data:", error.response.data);
           console.error("Error response status:", error.response.status);
+          console.error("Error response headers:", error.response.headers);
+        } else if (error.request) {
+          console.error("Error request:", error.request);
+        } else {
+          console.error("Error message:", error.message);
         }
         toast.error("Không thể tải thông tin tour");
         if (tourId) {
@@ -94,6 +170,18 @@ const TourDetail = () => {
       }
     };
 
+    // Fetch reviews for the tour
+    const fetchReviews = async () => {
+      try {
+        console.log("Fetching reviews for tourId:", tourId);
+        const response = await axiosInstance.get(`/tours/${tourId}/reviews`);
+        console.log("Reviews fetched successfully:", response.data);
+        setReviews(response.data.result || []);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        toast.error("Không thể tải danh sách đánh giá.");
+      }
+    };
     const fetchAdditionalImages = async () => {
       try {
         setIsLoadingImages(true);
@@ -202,6 +290,7 @@ const TourDetail = () => {
     }
   };
 
+  // Handle review submission
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (reviewRating < 1 || reviewRating > 5) {
@@ -278,7 +367,7 @@ const TourDetail = () => {
       toast.success("URL đã được sao chép!");
     }
   };
-
+  
   const fetchAdditionalImages = async () => {
     try {
       setIsLoadingImages(true);
@@ -341,16 +430,32 @@ const TourDetail = () => {
           <div className="mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-1">
-                <div className="relative aspect-square rounded-xl overflow-hidden shadow-md">{allTourImages.length > 0 && <img src={allTourImages[activeImageIndex]?.url} alt={tour.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />}</div>
+                <div className="relative aspect-square rounded-xl overflow-hidden shadow-md">
+                  {allTourImages.length > 0 && (
+                    <img
+                      src={allTourImages[activeImageIndex]?.url}
+                      alt={tour.name}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                  )}
+                </div>
               </div>
               <div className="col-span-1 grid grid-cols-2 grid-rows-2 gap-4">
                 {allTourImages.slice(0, 4).map((image, index) => (
                   <div
                     key={index}
                     onClick={() => setActiveImageIndex(index)}
-                    className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all border-2 ${activeImageIndex === index ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:opacity-90"}`}
+                    className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all border-2 ${
+                      activeImageIndex === index
+                        ? "border-primary ring-2 ring-primary ring-offset-2"
+                        : "border-transparent hover:opacity-90"
+                    }`}
                   >
-                    <img src={image.url} alt={`${tour.name} - ${index + 1}`} className="w-full h-full object-cover" />
+                    <img
+                      src={image.url}
+                      alt={`${tour.name} - ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 ))}
               </div>
@@ -390,7 +495,9 @@ const TourDetail = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ngày khởi hành</label>
                   <div className="relative flex items-center">
                     <Calendar className="h-5 w-5 mr-2 text-gray-400" />
-                    {tour?.departureDate && <span className="text-base text-gray-800 font-semibold">{formatDate(tour?.departureDate)}</span>}
+                    {tour?.departureDate && (
+                      <span className="text-base text-gray-800 font-semibold">{formatDate(tour?.departureDate)}</span>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -399,7 +506,14 @@ const TourDetail = () => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Users className="h-5 w-5 text-gray-400" />
                     </div>
-                    <Input type="number" value={numTravelers} onChange={(e) => setNumTravelers(parseInt(e.target.value) || 0)} min="1" className="pl-10" required />
+                    <Input
+                      type="number"
+                      value={numTravelers}
+                      onChange={(e) => setNumTravelers(parseInt(e.target.value) || 0)}
+                      min="1"
+                      className="pl-10"
+                      required
+                    />
                   </div>
                 </div>
               </div>
@@ -523,81 +637,179 @@ const TourDetail = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Đánh giá sao</label>
               <div className="flex items-center">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className={`h-8 w-8 cursor-pointer ${star <= reviewRating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} onClick={() => setReviewRating(star)} />
+                  <Star
+                    key={star}
+                    className={`h-8 w-8 cursor-pointer ${star <= reviewRating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`}
+                    onClick={() => setReviewRating(star)}
+                  />
                 ))}
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Nhận xét của bạn</label>
-              <Textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Chia sẻ trải nghiệm của bạn về tour" className="w-full" rows={4} required />
+              <Textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Chia sẻ trải nghiệm của bạn về tour"
+                className="w-full"
+                rows={4}
+                required
+              />
             </div>
             <Button type="submit" className="w-full" disabled={isSubmittingReview}>
               {isSubmittingReview ? "Đang gửi..." : "Gửi đánh giá"}
             </Button>
           </form>
         </div>
-        <div>
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">Đánh giá từ khách hàng</h2>
-            {(() => {
-              const mapStatus = (backendStatus) => {
-                switch (backendStatus) {
-                  case "CHO_DUYET":
-                    return "pending";
-                  case "DA_DUYET":
-                    return "approved";
-                  case "DA_TU_CHOI":
-                    return "rejected";
-                  default:
-                    return "pending";
-                }
-              };
 
-              const visibleReviews = reviews
-                .map((review) => ({
-                  ...review,
-                  status: mapStatus(review.status),
-                }))
-                .filter((review) => review.status !== "rejected");
-
-              if (visibleReviews.length > 0) {
-                return (
-                  <>
-                    <div className="flex items-center mb-6">
-                      <div className="flex items-center mr-4">
-                        <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        <span className="ml-1 font-semibold text-lg">{(visibleReviews.reduce((sum, review) => sum + review.rating, 0) / visibleReviews.length).toFixed(1)}</span>
-                      </div>
-                      <span className="text-gray-600">({visibleReviews.length} đánh giá)</span>
-                    </div>
-                    <div className="space-y-6 max-h-[300px] overflow-y-auto">
-                      {visibleReviews.map((review) => (
-                        <div key={review.reviewId} className="border-b pb-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h3 className="font-semibold">{review.fullName}</h3>
-                              <div className="text-sm text-gray-500">{formatDate(review.reviewDate)}</div>
-                            </div>
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star key={star} className={`h-4 w-4 ${star <= review.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-gray-600">{review.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <Button variant="outline" className="mt-6">
-                      Xem tất cả đánh giá
-                    </Button>
-                  </>
-                );
-              } else {
-                return <p className="text-gray-600">Chưa có đánh giá nào cho tour này.</p>;
+        {/* Cột phải - Hiển thị đánh giá từ khách hàng */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Đánh giá từ khách hàng</h2>
+          {(() => {
+            const mapStatus = (backendStatus) => {
+              switch (backendStatus) {
+                case "CHO_DUYET":
+                  return "pending";
+                case "DA_DUYET":
+                  return "approved";
+                case "DA_TU_CHOI":
+                  return "rejected";
+                default:
+                  return "pending";
               }
-            })()}
-          </div>
+            };
+
+            const visibleReviews = reviews
+              .map((review) => ({
+                ...review,
+                status: mapStatus(review.status),
+              }))
+              .filter((review) => {
+                // Không hiển thị đánh giá bị từ chối
+                if (review.status === "rejected") {
+                  return false;
+                }
+                // Nếu trạng thái là "pending", chỉ hiển thị với người dùng đã tạo đánh giá
+                if (review.status === "pending") {
+                  return user?.id === review.userId;
+                }
+                // Nếu trạng thái là "approved", hiển thị với tất cả người dùng
+                return true;
+              });
+
+            if (visibleReviews.length > 0) {
+              return (
+                <>
+                  <div className="flex items-center mb-6">
+                    <div className="flex items-center mr-4">
+                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                      <span className="ml-1 font-semibold text-lg">
+                        {(
+                          visibleReviews.reduce((sum, review) => sum + review.rating, 0) /
+                          visibleReviews.length
+                        ).toFixed(1)}
+                      </span>
+                    </div>
+                    <span className="text-gray-600">({visibleReviews.length} đánh giá)</span>
+                  </div>
+                  <div className="space-y-6 max-h-[300px] overflow-y-auto">
+                    {visibleReviews.map((review) => (
+                      <div key={review.reviewId} className="border-b pb-6">
+                        {editingReviewId === review.reviewId ? (
+                          // Form chỉnh sửa đánh giá
+                          <form onSubmit={handleUpdateReview} className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Đánh giá sao</label>
+                              <div className="flex items-center">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-8 w-8 cursor-pointer ${star <= editingRating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`}
+                                    onClick={() => setEditingRating(star)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Nhận xét của bạn</label>
+                              <Textarea
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                placeholder="Chia sẻ trải nghiệm của bạn về tour"
+                                className="w-full"
+                                rows={4}
+                                required
+                              />
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button type="submit" className="w-full" disabled={isEditingReview}>
+                                {isEditingReview ? "Đang cập nhật..." : "Cập nhật đánh giá"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleCancelEdit}
+                              >
+                                Hủy
+                              </Button>
+                            </div>
+                          </form>
+                        ) : (
+                          // Hiển thị đánh giá
+                          <>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="font-semibold">{review.fullName}</h3>
+                                <div className="text-sm text-gray-500">
+                                  {formatDate(review.reviewDate)}
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="flex mr-2">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`h-4 w-4 ${
+                                        star <= review.rating
+                                          ? "text-yellow-500 fill-yellow-500"
+                                          : "text-gray-300"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                {/* Hiển thị nút "Chỉnh sửa" nếu đánh giá thuộc về người dùng hiện tại */}
+                                {user?.id === review.userId && review.status !== "pending" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditReview(review)}
+                                  >
+                                    Chỉnh sửa
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-gray-600">{review.content}</p>
+                            {review.status === "pending" && user?.id === review.userId && (
+                              <p className="text-yellow-600 text-sm mt-2">
+                                Đánh giá đang chờ duyệt
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button variant="outline" className="mt-6">
+                    Xem tất cả đánh giá
+                  </Button>
+                </>
+              );
+            } else {
+              return <p className="text-gray-600">Chưa có đánh giá nào cho tour này.</p>;
+            }
+          })()}
         </div>
       </div>
       {showBookingModal && (
@@ -608,7 +820,11 @@ const TourDetail = () => {
             </div>
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="absolute top-0 right-0 pt-4 pr-4">
-                <button type="button" className="text-gray-400 hover:text-gray-500 focus:outline-none" onClick={closeBookingModal}>
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                  onClick={closeBookingModal}
+                >
                   <X className="h-6 w-6" />
                 </button>
               </div>
@@ -642,7 +858,8 @@ const TourDetail = () => {
                           <span className="font-medium">Tổng tiền:</span> {formatCurrency(successfulBookingData.totalPrice)}
                         </div>
                         <div>
-                          <span className="font-medium">Trạng thái:</span> <span className="text-yellow-700 font-semibold">Đang chờ xác nhận</span>
+                          <span className="font-medium">Trạng thái:</span>{" "}
+                          <span className="text-yellow-700 font-semibold">Đang chờ xác nhận</span>
                         </div>
                       </div>
                     </div>
@@ -684,18 +901,42 @@ const TourDetail = () => {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
-                        <Input type="text" placeholder="Nhập họ tên của bạn" value={user?.name || ""} required disabled={!!user?.name} />
+                        <Input
+                          type="text"
+                          placeholder="Nhập họ tên của bạn"
+                          value={user?.name || ""}
+                          required
+                          disabled={!!user?.name}
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <Input type="email" placeholder="Nhập email của bạn" value={user?.userName || ""} required disabled={!!user?.userName} />
+                        <Input
+                          type="email"
+                          placeholder="Nhập email của bạn"
+                          value={user?.userName || ""}
+                          required
+                          disabled={!!user?.userName}
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                        <Input type="tel" placeholder="Nhập số điện thoại của bạn" value={user?.phone || ""} required disabled={!!user?.phone} />
+                        <Input
+                          type="tel"
+                          placeholder="Nhập số điện thoại của bạn"
+                          value={user?.phone || ""}
+                          required
+                          disabled={!!user?.phone}
+                        />
                       </div>
                       <div className="flex items-start">
-                        <input id="terms" name="terms" type="checkbox" required className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1" />
+                        <input
+                          id="terms"
+                          name="terms"
+                          type="checkbox"
+                          required
+                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1"
+                        />
                         <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
                           Tôi đồng ý với{" "}
                           <a href="#" className="text-primary hover:underline">

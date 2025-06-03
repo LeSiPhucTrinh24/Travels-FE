@@ -1,14 +1,22 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, ArrowUpDown, Star, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import {
+  Search,
+  Filter,
+  ArrowUpDown,
+  Star,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
 import axiosInstance from "@/utils/axiosInstance"; // Giả định bạn đã có file này
 import { toast } from "react-toastify"; // Giả định bạn đã cài đặt react-toastify
 
 const ManageReviews = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState([]); 
 
   const mapStatus = (backendStatus) => {
     switch (backendStatus) {
@@ -43,9 +51,13 @@ const ManageReviews = () => {
     };
     fetchReviews();
   }, []);
+
   // Filter reviews based on search term and status
   const filteredReviews = reviews.filter((review) => {
-    const matchSearchTerm = review.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || review.name.toLowerCase().includes(searchTerm.toLowerCase()) || review.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearchTerm =
+      review.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.content.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchStatus = statusFilter === "all" || review.status === statusFilter;
 
@@ -154,12 +166,22 @@ const ManageReviews = () => {
 
               {review.status === "pending" && (
                 <div className="mt-4 flex justify-end space-x-2">
-                  <Button variant="outline" size="sm" className="text-green-600 hover:text-green-800 hover:bg-green-50 border-green-200" onClick={() => handleReviewStatus(review.reviewId, "approved")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 hover:text-green-800 hover:bg-green-50 border-green-200"
+                    onClick={() => handleReviewStatus(review.reviewId, "approved")}
+                  >
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Duyệt
                   </Button>
 
-                  <Button variant="outline" size="sm" className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200" onClick={() => handleReviewStatus(review.reviewId, "rejected")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200"
+                    onClick={() => handleReviewStatus(review.reviewId, "rejected")}
+                  >
                     <XCircle className="h-4 w-4 mr-1" />
                     Từ chối
                   </Button>
@@ -171,8 +193,13 @@ const ManageReviews = () => {
                   <div className="flex items-start">
                     <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 mr-2" />
                     <div>
-                      <h4 className="text-sm font-medium text-red-800">Lý do từ chối</h4>
-                      <p className="text-sm text-red-700">Vi phạm tiêu chuẩn cộng đồng: Đánh giá chứa thông tin tiêu cực, thiếu chính xác</p>
+                      <h4 className="text-sm font-medium text-red-800">
+                        Lý do từ chối
+                      </h4>
+                      <p className="text-sm text-red-700">
+                        Vi phạm tiêu chuẩn cộng đồng: Đánh giá chứa thông tin
+                        tiêu cực, thiếu chính xác
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -181,7 +208,9 @@ const ManageReviews = () => {
           ))
         ) : (
           <div className="text-center py-8 bg-white rounded-lg shadow-sm">
-            <p className="text-gray-500">Không tìm thấy đánh giá nào phù hợp với điều kiện tìm kiếm</p>
+            <p className="text-gray-500">
+              Không tìm thấy đánh giá nào phù hợp với điều kiện tìm kiếm
+            </p>
           </div>
         )}
       </div>
