@@ -26,9 +26,15 @@ const TourCard = ({ tour, onClick }) => (
 
     <div className="p-4">
       <h3 className="font-bold text-lg mb-1">{tour.name}</h3>
-      <div className="flex items-center mb-2 text-gray-500 text-sm">
-        <MapPin className="h-4 w-4 mr-1" />
-        <span>{tour.departureLocation}</span>
+      <div className="flex flex-col gap-1 mb-2 text-gray-500 text-sm">
+        <div className="flex items-center">
+          <MapPin className="h-4 w-4 mr-1" />
+          <span>Khởi hành: {tour.departureLocation}</span>
+        </div>
+        <div className="flex items-center">
+          <MapPin className="h-4 w-4 mr-1" />
+          <span>Điểm đến: {tour.destination}</span>
+        </div>
       </div>
 
       <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tour.description}</p>
@@ -102,7 +108,7 @@ const Home = () => {
             ...tour,
             featured: tour.featured === true || tour.featured === "true",
           }))
-          .filter((tour) => tour.featured === true);
+          .filter((tour) => tour.featured === true && tour.status === true);
         setFeaturedTours(featured);
         setDisplayedFeaturedTours(featured);
       } catch (error) {
@@ -124,7 +130,10 @@ const Home = () => {
 
     // Filter by destination
     if (searchParams.destination) {
-      results = results.filter((tour) => tour.departureLocation.toLowerCase().includes(searchParams.destination.toLowerCase()) || tour.name.toLowerCase().includes(searchParams.destination.toLowerCase()));
+      results = results.filter((tour) => {
+        const searchTerm = searchParams.destination.toLowerCase();
+        return (tour.destination && tour.destination.toLowerCase().includes(searchTerm)) || (tour.departureLocation && tour.departureLocation.toLowerCase().includes(searchTerm)) || (tour.name && tour.name.toLowerCase().includes(searchTerm));
+      });
     }
 
     // Filter by date
@@ -132,19 +141,15 @@ const Home = () => {
       const selectedDate = new Date(searchParams.date);
       results = results.filter((tour) => {
         const tourDate = new Date(tour.departureDate);
-        // Compare dates only (ignore time part)
         return tourDate.toDateString() === selectedDate.toDateString();
       });
     }
 
-    // Filter by people (assuming maxPeople or a similar field exists on tour object)
+    // Filter by people
     if (searchParams.people) {
       const requiredPeople = parseInt(searchParams.people);
       if (!isNaN(requiredPeople)) {
         results = results.filter((tour) => {
-          // Assuming tour object has a 'maxPeople' or 'capacity' field
-          // Adjust this logic based on your actual tour data structure
-          // For simplicity, let's assume a 'maxPeople' field indicates suitability
           if (searchParams.people === "5+") {
             return tour.maxPeople && tour.maxPeople >= 5;
           } else {
@@ -160,8 +165,21 @@ const Home = () => {
   // Handle search form submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    const query = new URLSearchParams(searchParams).toString();
-    navigate(`/tours?${query}`);
+    // Tạo object chứa các tham số tìm kiếm
+    const searchQuery = {
+      destination: searchParams.destination || "",
+      date: searchParams.date || "",
+      people: searchParams.people || "",
+    };
+
+    // Chuyển đổi thành query string và loại bỏ các tham số rỗng
+    const queryString = Object.entries(searchQuery)
+      .filter(([_, value]) => value !== "")
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join("&");
+
+    // Chuyển hướng đến trang Tours với các tham số tìm kiếm
+    navigate(`/tours${queryString ? `?${queryString}` : ""}`);
   };
 
   // Handle tour card click
@@ -171,7 +189,7 @@ const Home = () => {
 
   // Handle destination card click
   const handleDestinationClick = (destination) => {
-    navigate(`/tours?destination=${destination}`);
+    navigate(`/tours?destination=${encodeURIComponent(destination)}`);
   };
 
   // Sample destinations

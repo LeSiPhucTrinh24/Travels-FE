@@ -67,17 +67,10 @@ const ManageReviews = () => {
   // Handle review approval/rejection
   const handleReviewStatus = async (reviewId, newStatus) => {
     try {
-      const backendStatus =
-        newStatus === "approved" ? "DA_DUYET" : "DA_TU_CHOI";
-      const response = await axiosInstance.put(
-        `/tours/reviews/${reviewId}/status?trangThai=${backendStatus}`
-      );
+      const backendStatus = newStatus === "approved" ? "DA_DUYET" : "DA_TU_CHOI";
+      const response = await axiosInstance.put(`/tours/reviews/${reviewId}/status?trangThai=${backendStatus}`);
       console.log(`Review ${reviewId} updated to ${newStatus}:`, response.data);
-      toast.success(
-        `Đã cập nhật trạng thái đánh giá thành ${
-          newStatus === "approved" ? "Đã duyệt" : "Đã từ chối"
-        }!`
-      );
+      toast.success(`Đã cập nhật trạng thái đánh giá thành ${newStatus === "approved" ? "Đã duyệt" : "Đã từ chối"}!`);
 
       // Reload danh sách reviews từ API để đảm bảo đồng bộ
       const updatedResponse = await axiosInstance.get("/tours/reviews");
@@ -90,9 +83,7 @@ const ManageReviews = () => {
     } catch (error) {
       console.error(`Error updating review ${reviewId} to ${newStatus}:`, error);
       if (error.response) {
-        toast.error(
-          error.response.data.message || "Có lỗi xảy ra khi cập nhật trạng thái."
-        );
+        toast.error(error.response.data.message || "Có lỗi xảy ra khi cập nhật trạng thái.");
       } else {
         toast.error("Không thể kết nối với máy chủ. Vui lòng thử lại.");
       }
@@ -104,12 +95,7 @@ const ManageReviews = () => {
     return (
       <div className="flex">
         {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`h-4 w-4 ${
-              i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"
-            }`}
-          />
+          <Star key={i} className={`h-4 w-4 ${i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} />
         ))}
       </div>
     );
@@ -121,44 +107,16 @@ const ManageReviews = () => {
         <h1 className="text-2xl font-bold">Quản lý đánh giá</h1>
 
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => setStatusFilter("all")}
-            className={statusFilter === "all" ? "bg-gray-100" : ""}
-          >
+          <Button variant="outline" onClick={() => setStatusFilter("all")} className={statusFilter === "all" ? "bg-gray-100" : ""}>
             Tất cả
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setStatusFilter("pending")}
-            className={
-              statusFilter === "pending"
-                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                : ""
-            }
-          >
+          <Button variant="outline" onClick={() => setStatusFilter("pending")} className={statusFilter === "pending" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : ""}>
             Chờ duyệt
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setStatusFilter("approved")}
-            className={
-              statusFilter === "approved"
-                ? "bg-green-50 text-green-700 border-green-200"
-                : ""
-            }
-          >
+          <Button variant="outline" onClick={() => setStatusFilter("approved")} className={statusFilter === "approved" ? "bg-green-50 text-green-700 border-green-200" : ""}>
             Đã duyệt
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setStatusFilter("rejected")}
-            className={
-              statusFilter === "rejected"
-                ? "bg-red-50 text-red-700 border-red-200"
-                : ""
-            }
-          >
+          <Button variant="outline" onClick={() => setStatusFilter("rejected")} className={statusFilter === "rejected" ? "bg-red-50 text-red-700 border-red-200" : ""}>
             Đã từ chối
           </Button>
         </div>
@@ -167,12 +125,7 @@ const ManageReviews = () => {
       <div className="mb-6 flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            placeholder="Tìm kiếm đánh giá..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Tìm kiếm đánh giá..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
         </div>
 
         <div className="flex gap-2">
@@ -197,20 +150,8 @@ const ManageReviews = () => {
                   <div className="text-sm text-gray-500">{review.reviewDate}</div>
                 </div>
                 <div className="flex items-center">
-                  <span
-                    className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mr-2 ${
-                      review.status === "approved"
-                        ? "bg-green-100 text-green-800"
-                        : review.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {review.status === "approved"
-                      ? "Đã duyệt"
-                      : review.status === "pending"
-                      ? "Chờ duyệt"
-                      : "Đã từ chối"}
+                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mr-2 ${review.status === "approved" ? "bg-green-100 text-green-800" : review.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>
+                    {review.status === "approved" ? "Đã duyệt" : review.status === "pending" ? "Chờ duyệt" : "Đã từ chối"}
                   </span>
                   {renderStars(review.rating)}
                 </div>

@@ -49,12 +49,10 @@ const Login = () => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          // Nếu backend dùng cookie thì giữ withCredentials
-          // withCredentials: true,
         }
       );
 
-      const data = response.data.result || response.data; // phụ thuộc backend trả về
+      const data = response.data.result || response.data;
 
       // Lưu token vào localStorage
       if (data.token) {
@@ -82,11 +80,16 @@ const Login = () => {
         description: `Chào mừng ${userData.name || userData.userName}!`,
       });
 
-      // Điều hướng theo vai trò
+      // Kiểm tra xem có return URL không
+      const location = window.location;
+      const params = new URLSearchParams(location.search);
+      const returnUrl = params.get("returnUrl") || location.state?.from;
+
+      // Điều hướng theo vai trò và return URL
       if (hasRole(userData.roles, "ADMIN")) {
         navigate("/admin");
-      } else if (hasRole(userData.roles, "USER")) {
-        navigate("/");
+      } else if (returnUrl) {
+        navigate(returnUrl);
       } else {
         navigate("/");
       }

@@ -132,6 +132,12 @@ const TourDetail = () => {
         const response = await axiosInstance.get(`/tours/${tourId}`);
         console.log("Tour data fetched successfully:", response.data);
         setTour(response.data.result);
+
+        const itinerariesResponse = await axiosInstance.get("/itineraries");
+        console.log("Raw itineraries response:", itinerariesResponse.data);
+        const tourItineraries = itinerariesResponse.data.result.filter((itinerary) => itinerary.tourId === tourId).sort((a, b) => a.dayNumber - b.dayNumber);
+        console.log("Processed itineraries:", tourItineraries);
+        setItineraries(tourItineraries);
       } catch (error) {
         console.error("Error fetching tour:", error);
         if (error.response) {
@@ -151,7 +157,6 @@ const TourDetail = () => {
         setIsLoading(false);
       }
     };
-
     // Fetch reviews for the tour
     const fetchReviews = async () => {
       try {
@@ -165,6 +170,18 @@ const TourDetail = () => {
       }
     };
 
+    // Fetch reviews for the tour
+    const fetchReviews = async () => {
+      try {
+        console.log("Fetching reviews for tourId:", tourId);
+        const response = await axiosInstance.get(`/tours/${tourId}/reviews`);
+        console.log("Reviews fetched successfully:", response.data);
+        setReviews(response.data.result || []);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        toast.error("Không thể tải danh sách đánh giá.");
+      }
+    };
     const fetchAdditionalImages = async () => {
       try {
         setIsLoadingImages(true);
@@ -176,7 +193,6 @@ const TourDetail = () => {
         setIsLoadingImages(false);
       }
     };
-
     if (tourId) {
       fetchTour();
       fetchReviews();
@@ -184,7 +200,6 @@ const TourDetail = () => {
     }
   }, [tourId, navigate]);
 
-  // Handle booking form submission
   const handleBooking = async (e) => {
     e.preventDefault();
     setBookingError("");
@@ -200,22 +215,55 @@ const TourDetail = () => {
     if (!user?.id) {
       setBookingError("Vui lòng đăng nhập để đặt tour.");
       setIsBookingLoading(false);
+      navigate("/login", { state: { from: `/tours/${tourId}` } });
+      return;
+    }
+
+    // Check if there are enough slots available
+    if (numTravelers > tour.maxPeople) {
+      setBookingError(`Số người vượt quá giới hạn cho phép (${tour.maxPeople} người).`);
+      setIsBookingLoading(false);
       return;
     }
 
     try {
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+
       const bookingData = {
         userId: user.id,
         tourId: tourId,
         numberOfPeople: numTravelers,
         totalPrice: calculateTotalPrice(),
-        bookingDate: new Date().toISOString(),
-        status: false,
+        bookingDate: vietnamTime.toISOString(),
+        status: 0,
       };
 
       console.log("Attempting to book tour with data:", bookingData);
       const response = await axiosInstance.post("/booking", bookingData);
       console.log("Booking successful:", response.data);
+
+      const remainingSlots = tour.maxPeople - numTravelers;
+      const formData = new FormData();
+      formData.append("name", tour.name);
+      formData.append("description", tour.description);
+      formData.append("price", tour.price);
+      formData.append("duration", tour.duration);
+      formData.append("departureDate", tour.departureDate);
+      formData.append("departureLocation", tour.departureLocation);
+      formData.append("maxPeople", remainingSlots);
+      formData.append("tourTypeId", tour.tourTypeId);
+      formData.append("status", tour.status);
+      formData.append("featured", tour.featured);
+      formData.append("coverImage", tour.coverImage);
+
+      await axiosInstance.put(`/tours/${tourId}`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setSuccessfulBookingData(response.data.result);
       toast.success("Đặt tour thành công! Chúng tôi sẽ liên hệ với bạn để xác nhận.");
       setBookingSuccess(true);
@@ -290,13 +338,10 @@ const TourDetail = () => {
     }
   };
 
-  // Calculate total price
   const calculateTotalPrice = () => {
-    if (!tour) return 0;
-    return tour.price * numTravelers;
+    return tour ? tour.price * numTravelers : 0;
   };
 
-  // Close booking modal and reset
   const closeBookingModal = () => {
     setShowBookingModal(false);
     setBookingSuccess(false);
@@ -304,12 +349,10 @@ const TourDetail = () => {
     setSuccessfulBookingData(null);
   };
 
-  // Handle favorite
   const handleFavorite = () => {
     toast.success("Đã thêm vào danh sách yêu thích!");
   };
 
-  // Handle share
   const handleShare = () => {
     if (navigator.share) {
       navigator
@@ -318,12 +361,22 @@ const TourDetail = () => {
           text: `Khám phá tour ${tour?.name} tại TravelNow!`,
           url: window.location.href,
         })
-        .catch((err) => {
-          console.error("Error sharing:", err);
-        });
+        .catch((err) => console.error("Error sharing:", err));
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success("URL đã được sao chép!");
+    }
+  };
+  
+  const fetchAdditionalImages = async () => {
+    try {
+      setIsLoadingImages(true);
+      const response = await axiosInstance.get(`/tours/${tourId}/images`);
+      setAdditionalImages(response.data.result || []);
+    } catch (error) {
+      console.error("Error fetching additional images:", error);
+    } finally {
+      setIsLoadingImages(false);
     }
   };
 
@@ -353,7 +406,6 @@ const TourDetail = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Tour header */}
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">{tour.name}</h1>
         <div className="flex flex-wrap items-center text-gray-600 gap-x-4 gap-y-2">
@@ -373,9 +425,7 @@ const TourDetail = () => {
         </div>
       </div>
 
-      {/* Tour Images and Booking */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Left side - Tour Images */}
         <div className="lg:col-span-2">
           <div className="mb-6">
             <div className="grid grid-cols-2 gap-4">
@@ -422,8 +472,6 @@ const TourDetail = () => {
             </Button>
           </div>
         </div>
-
-        {/* Right side - Booking card */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
             <div className="flex justify-between items-center mb-4">
@@ -435,6 +483,10 @@ const TourDetail = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (!user) {
+                  navigate("/login", { state: { from: `/tours/${tourId}` } });
+                  return;
+                }
                 setShowBookingModal(true);
               }}
             >
@@ -478,17 +530,13 @@ const TourDetail = () => {
                 </div>
               </div>
               <Button type="submit" className="w-full mt-6">
-                Đặt tour ngay
+                {user ? "Đặt tour ngay" : "Đăng nhập để đặt tour"}
               </Button>
-              <p className="text-xs text-gray-500 mt-4 text-center">
-                Bạn chưa cần thanh toán ngay. Chúng tôi sẽ liên hệ với bạn để xác nhận và hướng dẫn thanh toán.
-              </p>
+              <p className="text-xs text-gray-500 mt-4 text-center">Bạn chưa cần thanh toán ngay. Chúng tôi sẽ liên hệ với bạn để xác nhận và hướng dẫn thanh toán.</p>
             </form>
           </div>
         </div>
       </div>
-
-      {/* Tour details section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-3">
           <div className="mb-8">
@@ -539,68 +587,46 @@ const TourDetail = () => {
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">Lịch trình</h2>
             <div className="space-y-6">
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Ngày 1: Khởi hành - Khám phá</h3>
-                <ul className="space-y-2 text-gray-600">
-                  <li className="flex">
-                    <span className="font-medium mr-2">07:00:</span>
-                    <span>Đón khách tại điểm hẹn, khởi hành đi {tour.destination}</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">10:00:</span>
-                    <span>Tham quan điểm du lịch đầu tiên</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">12:00:</span>
-                    <span>Ăn trưa tại nhà hàng địa phương</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">14:00:</span>
-                    <span>Tiếp tục tham quan các điểm du lịch</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">18:00:</span>
-                    <span>Ăn tối và nhận phòng khách sạn</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">Tối:</span>
-                    <span>Tự do khám phá {tour.destination} về đêm</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Ngày 2: Trải nghiệm văn hóa</h3>
-                <ul className="space-y-2 text-gray-600">
-                  <li className="flex">
-                    <span className="font-medium mr-2">07:00:</span>
-                    <span>Dùng điểm tâm sáng tại khách sạn</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">08:30:</span>
-                    <span>Tham quan các địa điểm văn hóa, lịch sử</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">12:00:</span>
-                    <span>Ăn trưa, nghỉ ngơi</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">14:00:</span>
-                    <span>Tham gia hoạt động trải nghiệm văn hóa địa phương</span>
-                  </li>
-                  <li className="flex">
-                    <span className="font-medium mr-2">18:00:</span>
-                    <span>Ăn tối với đặc sản địa phương</span>
-                  </li>
-                </ul>
-              </div>
+              {itineraries.map((itinerary) => {
+                console.log("Rendering itinerary with full data:", itinerary);
+                return (
+                  <div key={itinerary.itineraryId} className="bg-gray-50 p-6 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3">
+                      Ngày {itinerary.dayNumber}: {itinerary.dayTitle}
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-start">
+                        <MapPin className="h-5 w-5 mr-2 text-primary mt-1 flex-shrink-0" />
+                        <div>
+                          <p className=" font-medium text-gray-600">{itinerary.destination?.destinationName || "Chưa có thông tin"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <MessageSquare className="h-5 w-5 mr-2 text-primary mt-1 flex-shrink-0" />
+                        <div>
+                          <div className="font-medium prose max-w-none text-gray-600">
+                            {itinerary.description ? (
+                              itinerary.description.split("\n").map((line, index) => (
+                                <p key={index} className="mb-2">
+                                  {line}
+                                </p>
+                              ))
+                            ) : (
+                              <p>Chưa có mô tả chi tiết</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {itineraries.length === 0 && <div className="text-center py-8 text-gray-500">Chưa có thông tin lịch trình cho tour này</div>}
             </div>
           </div>
         </div>
       </div>
-
-      {/* New Review Form Section */}
       <div className="lg:grid lg:grid-cols-2 gap-8 mt-12">
-        {/* Cột trái - Viết đánh giá */}
         <div className="bg-gray-50 rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-6 flex items-center">
             <MessageSquare className="h-6 w-6 mr-2 text-primary" />
@@ -786,8 +812,6 @@ const TourDetail = () => {
           })()}
         </div>
       </div>
-
-      {/* Booking confirmation modal */}
       {showBookingModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
@@ -811,9 +835,7 @@ const TourDetail = () => {
                       <CheckCircle className="h-6 w-6 text-green-600" />
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Đặt tour thành công!</h3>
-                    <p className="text-gray-600 mb-6">
-                      Dưới đây là thông tin chi tiết đặt tour của bạn. Chúng tôi sẽ liên hệ để xác nhận và hướng dẫn thanh toán.
-                    </p>
+                    <p className="text-gray-600 mb-6">Dưới đây là thông tin chi tiết đặt tour của bạn. Chúng tôi sẽ liên hệ để xác nhận và hướng dẫn thanh toán.</p>
                     <div className="bg-gray-50 rounded-lg p-4 mb-6 w-full text-left">
                       <div className="font-medium text-lg mb-3">{tour?.name}</div>
                       <div className="space-y-2 text-gray-700 text-sm">

@@ -108,7 +108,7 @@ const Register = () => {
 
             <div>
               <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
-                Tên người dùng
+                Tên đăng nhập
               </label>
               <Input
                 id="userName"

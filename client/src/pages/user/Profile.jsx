@@ -153,18 +153,25 @@ const Profile = () => {
     }
 
     setIsLoading(true);
-    try {
-      const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
-      await axiosInstance.put(`/users/${userId}`, 
-        { profileForm },
-        { 
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const dobValue = profileForm.birthdate ? profileForm.birthdate : "";
+      const formData = new FormData();
+      formData.append("fullName", profileForm.name);
+      formData.append("phone", profileForm.phone);
+      formData.append("address", profileForm.address);
+      formData.append("dob", dobValue);
+
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      } else if (profileForm.avatar) {
+        formData.append("avatar", profileForm.avatar);
+      }
+
+      await axiosInstance.put(`/users/${user.id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
       toast({
         title: "Cập nhật thành công",
         description: "Thông tin cá nhân của bạn đã được cập nhật",
