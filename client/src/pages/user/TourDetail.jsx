@@ -52,6 +52,75 @@ const TourDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
+  // Thêm các state mới để quản lý chỉnh sửa đánh giá
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editingRating, setEditingRating] = useState(0);
+  const [editingText, setEditingText] = useState("");
+  const [isEditingReview, setIsEditingReview] = useState(false);
+
+  // Hàm xử lý khi nhấn nút "Chỉnh sửa"
+  const handleEditReview = (review) => {
+    setEditingReviewId(review.reviewId);
+    setEditingRating(review.rating);
+    setEditingText(review.content);
+  };
+
+  // Hàm hủy chỉnh sửa
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setEditingRating(0);
+    setEditingText("");
+  };
+
+  // Hàm xử lý gửi yêu cầu chỉnh sửa đánh giá
+  const handleUpdateReview = async (e) => {
+    e.preventDefault();
+    if (editingRating < 1 || editingRating > 5) {
+      toast.error("Vui lòng chọn số sao từ 1 đến 5");
+      return;
+    }
+
+    if (!editingText.trim()) {
+      toast.error("Vui lòng nhập nhận xét của bạn");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("Vui lòng đăng nhập để chỉnh sửa đánh giá.");
+      return;
+    }
+
+    setIsEditingReview(true);
+    try {
+      const reviewData = {
+        userId: user.id,
+        rating: editingRating,
+        content: editingText,
+      };
+
+      const response = await axiosInstance.put(`/tours/reviews/${editingReviewId}`, reviewData);
+      console.log("Review updated successfully:", response.data);
+
+      // Gọi lại API để lấy danh sách đánh giá mới
+      const updatedResponse = await axiosInstance.get(`/tours/${tourId}/reviews`);
+      setReviews(updatedResponse.data.result || []);
+
+      toast.success("Cập nhật đánh giá thành công!");
+      setEditingReviewId(null);
+      setEditingRating(0);
+      setEditingText("");
+    } catch (error) {
+      console.error("Error updating review:", error);
+      if (error.response) {
+        toast.error(error.response.data.message || "Có lỗi xảy ra khi cập nhật đánh giá");
+      } else {
+        toast.error("Không thể cập nhật đánh giá. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsEditingReview(false);
+    }
+  };
+
   // Fetch tour and reviews when component mounts
   useEffect(() => {
     console.log("TourDetail useEffect running for tourId:", tourId);
@@ -589,7 +658,18 @@ const TourDetail = () => {
                 ...review,
                 status: mapStatus(review.status),
               }))
-              .filter((review) => review.status !== "rejected");
+              .filter((review) => {
+                // Không hiển thị đánh giá bị từ chối
+                if (review.status === "rejected") {
+                  return false;
+                }
+                // Nếu trạng thái là "pending", chỉ hiển thị với người dùng đã tạo đánh giá
+                if (review.status === "pending") {
+                  return user?.id === review.userId;
+                }
+                // Nếu trạng thái là "approved", hiển thị với tất cả người dùng
+                return true;
+              });
 
             if (visibleReviews.length > 0) {
               return (
@@ -609,27 +689,89 @@ const TourDetail = () => {
                   <div className="space-y-6 max-h-[300px] overflow-y-auto">
                     {visibleReviews.map((review) => (
                       <div key={review.reviewId} className="border-b pb-6">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold">{review.fullName}</h3>
-                            <div className="text-sm text-gray-500">
-                              {formatDate(review.reviewDate)}
+                        {editingReviewId === review.reviewId ? (
+                          // Form chỉnh sửa đánh giá
+                          <form onSubmit={handleUpdateReview} className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Đánh giá sao</label>
+                              <div className="flex items-center">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-8 w-8 cursor-pointer ${star <= editingRating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`}
+                                    onClick={() => setEditingRating(star)}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-4 w-4 ${
-                                  star <= review.rating
-                                    ? "text-yellow-500 fill-yellow-500"
-                                    : "text-gray-300"
-                                }`}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Nhận xét của bạn</label>
+                              <Textarea
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                placeholder="Chia sẻ trải nghiệm của bạn về tour"
+                                className="w-full"
+                                rows={4}
+                                required
                               />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-gray-600">{review.content}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button type="submit" className="w-full" disabled={isEditingReview}>
+                                {isEditingReview ? "Đang cập nhật..." : "Cập nhật đánh giá"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleCancelEdit}
+                              >
+                                Hủy
+                              </Button>
+                            </div>
+                          </form>
+                        ) : (
+                          // Hiển thị đánh giá
+                          <>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="font-semibold">{review.fullName}</h3>
+                                <div className="text-sm text-gray-500">
+                                  {formatDate(review.reviewDate)}
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="flex mr-2">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`h-4 w-4 ${
+                                        star <= review.rating
+                                          ? "text-yellow-500 fill-yellow-500"
+                                          : "text-gray-300"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                {/* Hiển thị nút "Chỉnh sửa" nếu đánh giá thuộc về người dùng hiện tại */}
+                                {user?.id === review.userId && review.status !== "pending" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditReview(review)}
+                                  >
+                                    Chỉnh sửa
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-gray-600">{review.content}</p>
+                            {review.status === "pending" && user?.id === review.userId && (
+                              <p className="text-yellow-600 text-sm mt-2">
+                                Đánh giá đang chờ duyệt
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
