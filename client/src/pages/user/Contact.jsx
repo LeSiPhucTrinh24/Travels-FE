@@ -102,11 +102,7 @@ const Contact = () => {
                     <h3 className="font-semibold text-lg mb-1">Email</h3>
                     <p className="text-gray-600">
                       <a href="mailto:info@travelnow.com" className="hover:text-primary transition-colors">
-                        info@travelnow.com
-                      </a>
-                      <br />
-                      <a href="mailto:support@travelnow.com" className="hover:text-primary transition-colors">
-                        support@travelnow.com
+                        lesiphuctrinh@gmail.com
                       </a>
                     </p>
                   </div>

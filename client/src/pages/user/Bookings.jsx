@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, User, CreditCard, Clock, Search, ChevronDown, ChevronRight, FileText, AlertCircle, CheckCircle, X } from "lucide-react";
+import { Calendar, MapPin, User, CreditCard, Clock, Search, ChevronDown, ChevronRight, FileText, AlertCircle, CheckCircle, X, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import axiosInstance from "@/utils/axiosInstance";
 import { useAuth } from "@/hooks/AuthContext";
 import { toast } from "react-toastify";
@@ -92,6 +93,8 @@ const Bookings = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedBookingId, setExpandedBookingId] = useState(null);
   const { user } = useAuth();
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Fetch bookings from API
   const {
@@ -106,6 +109,9 @@ const Bookings = () => {
 
       try {
         const response = await axiosInstance.get(`/booking/user/${user.id}`);
+        console.log("Booking API Response:", response.data.result);
+        console.log("First booking tour data:", response.data.result[0]?.tour);
+        console.log("First booking destination:", response.data.result[0]?.tour?.location);
         return response.data.result || [];
       } catch (error) {
         console.error("Error fetching bookings:", error);
@@ -121,7 +127,7 @@ const Bookings = () => {
     // Match status based on numeric value from backend and active tab filter
     const matchesTab = activeTab === "all" || booking.status === activeTab;
 
-    const matchesSearch = searchQuery === "" || (booking.tour?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.tour?.destination || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.bookingId || "").toString().includes(searchQuery);
+    const matchesSearch = searchQuery === "" || (booking.tour?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.tour?.location || "").toLowerCase().includes(searchQuery.toLowerCase()) || (booking.bookingId || "").toString().includes(searchQuery);
 
     return matchesTab && matchesSearch;
   });
@@ -177,6 +183,17 @@ const Bookings = () => {
         toast.error("Không thể hủy đơn đặt tour. Vui lòng thử lại.");
       }
     }
+  };
+
+  const handleViewDetails = (booking) => {
+    console.log("Selected Booking Data:", booking);
+    console.log("Tour Data:", booking.tour);
+    console.log("User Data:", user);
+    console.log("Booking Email:", booking.email);
+    console.log("User Email:", booking.user?.email);
+    console.log("Current User Email:", user?.email);
+    setSelectedBooking(booking);
+    setIsDetailsModalOpen(true);
   };
 
   if (error) {
@@ -270,7 +287,7 @@ const Bookings = () => {
                       <div className="flex flex-col sm:flex-row text-sm text-gray-500 gap-y-1 sm:gap-x-4">
                         <div className="flex items-center">
                           <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span>{booking.tour?.destination}</span>
+                          <span>{booking.tour?.location || "N/A"}</span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
@@ -345,7 +362,7 @@ const Bookings = () => {
                     </div>
 
                     <div className="mt-6 flex flex-wrap gap-3 justify-end">
-                      <Button variant="outline">
+                      <Button variant="outline" onClick={() => handleViewDetails(booking)}>
                         <FileText className="h-4 w-4 mr-2" />
                         Xem chi tiết
                       </Button>
@@ -372,6 +389,124 @@ const Bookings = () => {
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="text-2xl font-bold text-primary">Chi tiết đặt tour</DialogTitle>
+          </DialogHeader>
+
+          {selectedBooking && (
+            <div className="space-y-6 py-4">
+              {/* Customer Information */}
+              <div className="bg-white rounded-lg border shadow-sm">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center text-primary">
+                    <User className="h-5 w-5 mr-2" />
+                    Thông tin khách hàng
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <User className="h-5 w-5 text-primary mt-1" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Họ và tên</p>
+                        <p className="font-medium text-gray-900">{selectedBooking?.name || selectedBooking?.user?.fullName || user?.name || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Mail className="h-5 w-5 text-primary mt-1" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Email</p>
+                        <p className="font-medium text-gray-900">{selectedBooking?.email || selectedBooking?.user?.userName || user?.userName || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Phone className="h-5 w-5 text-primary mt-1" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Số điện thoại</p>
+                        <p className="font-medium text-gray-900">{selectedBooking?.phone || selectedBooking?.user?.phone || user?.phone || "N/A"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tour Information */}
+              <div className="bg-white rounded-lg border shadow-sm">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center text-primary">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Thông tin tour
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Tên tour</p>
+                      <p className="font-medium text-gray-900">{selectedBooking?.tour?.name || "N/A"}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Điểm đến</p>
+                      <p className="font-medium text-gray-900">{selectedBooking?.tour?.location || "N/A"}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Ngày khởi hành</p>
+                      <p className="font-medium text-gray-900">{formatDateOnly(selectedBooking?.tour?.departureDate) || "N/A"}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Địa điểm khởi hành</p>
+                      <p className="font-medium text-gray-900">{selectedBooking?.tour?.departureLocation || "N/A"}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Thời gian</p>
+                      <p className="font-medium text-gray-900">{selectedBooking?.tour?.duration || "N/A"} ngày</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Giá tour</p>
+                      <p className="font-medium text-gray-900">{formatCurrency(selectedBooking?.tour?.price) || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking Information */}
+              <div className="bg-white rounded-lg border shadow-sm">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center text-primary">
+                    <FileText className="h-5 w-5 mr-2" />
+                    Thông tin đặt tour
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Mã đặt tour</p>
+                      <p className="font-medium text-gray-900">#{selectedBooking.bookingId}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Ngày đặt</p>
+                      <p className="font-medium text-gray-900">{formatDate(selectedBooking.bookingDate)}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Số người</p>
+                      <p className="font-medium text-gray-900">{selectedBooking.numberOfPeople} người</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Tổng tiền</p>
+                      <p className="font-medium text-gray-900">{formatCurrency(selectedBooking.totalPrice)}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">Trạng thái</p>
+                      <p className={`font-medium ${selectedBooking.status === 1 ? "text-green-600" : selectedBooking.status === 0 ? "text-yellow-600" : "text-red-600"}`}>
+                        {selectedBooking.status === 1 && "Đã xác nhận"}
+                        {selectedBooking.status === 0 && "Đang chờ duyệt"}
+                        {selectedBooking.status === 2 && "Đã hủy"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -16,6 +16,23 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
+// Format date for display
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
+
+// Format date for input
+const formatDateForInput = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toISOString().split("T")[0];
+};
+
 // Tour card component
 const TourCard = ({ tour, onClick }) => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
@@ -26,9 +43,15 @@ const TourCard = ({ tour, onClick }) => (
 
     <div className="p-4">
       <h3 className="font-bold text-lg mb-1">{tour.name}</h3>
-      <div className="flex items-center mb-2 text-gray-500 text-sm">
-        <MapPin className="h-4 w-4 mr-1" />
-        <span>{tour.destination}</span>
+      <div className="flex flex-col gap-1 mb-2 text-gray-500 text-sm">
+        <div className="flex items-center">
+          <MapPin className="h-4 w-4 mr-1" />
+          <span>Điểm đến: {tour.location}</span>
+        </div>
+        <div className="flex items-center">
+          <Calendar className="h-4 w-4 mr-1" />
+          <span>Khởi hành: {formatDate(tour.departureDate)}</span>
+        </div>
       </div>
 
       <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tour.description}</p>
@@ -48,7 +71,8 @@ const Tours = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const initialDestination = queryParams.get("destination") || "";
+  const initialLocation = queryParams.get("location") || "";
+  const initialDate = queryParams.get("date") || "";
 
   const [tours, setTours] = useState([]);
   const [filteredTours, setFilteredTours] = useState([]);
@@ -58,8 +82,8 @@ const Tours = () => {
 
   // Filter state
   const [searchParams, setSearchParams] = useState({
-    destination: initialDestination,
-    date: "",
+    location: initialLocation,
+    date: initialDate,
     people: "",
     minPrice: "",
     maxPrice: "",
@@ -111,6 +135,7 @@ const Tours = () => {
         const response = await axiosInstance.get("/tours");
         const currentDate = new Date();
 
+        // hàm tự động sét lại trạng thái ngừng hoạt động của tour khi ngày khởi hành < ngày hiện tại
         const activeTours = response.data.result
           .map((tour) => {
             const departureDate = new Date(tour.departureDate);
@@ -183,6 +208,9 @@ const Tours = () => {
 
   // Handle filter change
   const handleFilterChange = (name, value) => {
+    if (name === "date") {
+      value = formatDateForInput(value);
+    }
     const newParams = { ...searchParams, [name]: value };
     setSearchParams(newParams);
   };
@@ -191,9 +219,9 @@ const Tours = () => {
   const applyFilters = (params = searchParams) => {
     let results = [...tours];
 
-    // Filter by destination
-    if (params.destination) {
-      results = results.filter((tour) => tour.destination.toLowerCase().includes(params.destination.toLowerCase()));
+    // Filter by location
+    if (params.location) {
+      results = results.filter((tour) => tour.location && tour.location.toLowerCase().includes(params.location.toLowerCase()));
     }
 
     // Filter by tour type
@@ -204,9 +232,18 @@ const Tours = () => {
     // Filter by date
     if (params.date) {
       const selectedDate = new Date(params.date);
+      // Set time to start of day in local timezone
+      selectedDate.setHours(0, 0, 0, 0);
+
       results = results.filter((tour) => {
+        if (!tour.departureDate) return false;
+
         const tourDate = new Date(tour.departureDate);
-        return tourDate >= selectedDate;
+        // Set time to start of day in local timezone
+        tourDate.setHours(0, 0, 0, 0);
+
+        // Compare dates using timestamp
+        return tourDate.getTime() === selectedDate.getTime();
       });
     }
 
@@ -238,7 +275,7 @@ const Tours = () => {
   // Reset filters
   const resetFilters = () => {
     setSearchParams({
-      destination: "",
+      location: "",
       date: "",
       people: "",
       minPrice: "",
@@ -290,14 +327,14 @@ const Tours = () => {
                     </div>
                   </div>
 
-                  {/* Destination filter */}
+                  {/* Location filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Điểm đến</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MapPin className="h-5 w-5 text-gray-400" />
                       </div>
-                      <Input value={searchParams.destination} onChange={(e) => handleFilterChange("destination", e.target.value)} placeholder="Bạn muốn đi đâu?" className="pl-10" />
+                      <Input value={searchParams.location} onChange={(e) => handleFilterChange("location", e.target.value)} placeholder="Bạn muốn đi đâu?" className="pl-10" />
                     </div>
                   </div>
 
@@ -308,7 +345,7 @@ const Tours = () => {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Calendar className="h-5 w-5 text-gray-400" />
                       </div>
-                      <Input type="date" value={searchParams.date} onChange={(e) => handleFilterChange("date", e.target.value)} className="pl-10" />
+                      <Input type="date" value={searchParams.date ? formatDateForInput(searchParams.date) : ""} onChange={(e) => handleFilterChange("date", e.target.value)} className="pl-10" />
                     </div>
                   </div>
 
@@ -408,7 +445,7 @@ const Tours = () => {
               <div className="flex justify-between items-center mb-6">
                 <p className="text-gray-600">
                   Hiển thị {filteredTours.length} tour
-                  {searchParams.destination && ` cho "${searchParams.destination}"`}
+                  {searchParams.location && ` cho "${searchParams.location}"`}
                 </p>
               </div>
 

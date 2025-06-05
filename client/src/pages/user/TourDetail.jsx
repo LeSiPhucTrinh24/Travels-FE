@@ -52,6 +52,12 @@ const TourDetail = () => {
   const [itineraries, setItineraries] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    email: user?.userName || "",
+    phone: user?.phone || "",
+    terms: false,
+  });
 
   useEffect(() => {
     const fetchTour = async () => {
@@ -81,7 +87,7 @@ const TourDetail = () => {
         setIsLoading(false);
       }
     };
-    // Fetch reviews for the tour
+
     const fetchReviews = async () => {
       try {
         console.log("Fetching reviews for tourId:", tourId);
@@ -105,6 +111,7 @@ const TourDetail = () => {
         setIsLoadingImages(false);
       }
     };
+
     if (tourId) {
       fetchTour();
       fetchReviews();
@@ -112,11 +119,35 @@ const TourDetail = () => {
     }
   }, [tourId, navigate]);
 
+  useEffect(() => {
+    // Update formData when user changes
+    setFormData({
+      name: user?.name || "",
+      email: user?.userName || "",
+      phone: user?.phone || "",
+      terms: false,
+    });
+  }, [user]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
   const handleBooking = async (e) => {
     e.preventDefault();
     setBookingError("");
     setIsBookingLoading(true);
     setSuccessfulBookingData(null);
+
+    if (!formData.terms) {
+      setBookingError("Vui lòng đồng ý với Điều khoản và Chính sách.");
+      setIsBookingLoading(false);
+      return;
+    }
 
     if (!Number.isInteger(numTravelers) || numTravelers <= 0) {
       setBookingError("Số người phải là số nguyên dương.");
@@ -131,7 +162,6 @@ const TourDetail = () => {
       return;
     }
 
-    // Check if there are enough slots available
     if (numTravelers > tour.maxPeople) {
       setBookingError(`Số người vượt quá giới hạn cho phép (${tour.maxPeople} người).`);
       setIsBookingLoading(false);
@@ -149,27 +179,33 @@ const TourDetail = () => {
         totalPrice: calculateTotalPrice(),
         bookingDate: vietnamTime.toISOString(),
         status: 0,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
       };
 
+      console.log("Tour data before booking:", tour);
       console.log("Attempting to book tour with data:", bookingData);
       const response = await axiosInstance.post("/booking", bookingData);
       console.log("Booking successful:", response.data);
+      console.log("Tour data in response:", response.data.result?.tour);
+      console.log("Location in response:", response.data.result?.tour?.location);
 
       const remainingSlots = tour.maxPeople - numTravelers;
-      const formData = new FormData();
-      formData.append("name", tour.name);
-      formData.append("description", tour.description);
-      formData.append("price", tour.price);
-      formData.append("duration", tour.duration);
-      formData.append("departureDate", tour.departureDate);
-      formData.append("departureLocation", tour.departureLocation);
-      formData.append("maxPeople", remainingSlots);
-      formData.append("tourTypeId", tour.tourTypeId);
-      formData.append("status", tour.status);
-      formData.append("featured", tour.featured);
-      formData.append("coverImage", tour.coverImage);
+      const formDataUpdate = new FormData();
+      formDataUpdate.append("name", tour.name);
+      formDataUpdate.append("description", tour.description);
+      formDataUpdate.append("price", tour.price);
+      formDataUpdate.append("duration", tour.duration);
+      formDataUpdate.append("departureDate", tour.departureDate);
+      formDataUpdate.append("departureLocation", tour.departureLocation);
+      formDataUpdate.append("maxPeople", remainingSlots);
+      formDataUpdate.append("tourTypeId", tour.tourTypeId);
+      formDataUpdate.append("status", tour.status);
+      formDataUpdate.append("featured", tour.featured);
+      formDataUpdate.append("coverImage", tour.coverImage);
 
-      await axiosInstance.put(`/tours/${tourId}`, formData, {
+      await axiosInstance.put(`/tours/${tourId}`, formDataUpdate, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "multipart/form-data",
@@ -230,7 +266,6 @@ const TourDetail = () => {
       const response = await axiosInstance.post(`/tours/${tourId}/reviews`, reviewData);
       console.log("Review submitted successfully:", response.data);
 
-      // Gọi lại API để lấy danh sách đánh giá mới
       const updatedResponse = await axiosInstance.get(`/tours/${tourId}/reviews`);
       setReviews(updatedResponse.data.result || []);
 
@@ -258,6 +293,12 @@ const TourDetail = () => {
     setBookingSuccess(false);
     setBookingError("");
     setSuccessfulBookingData(null);
+    setFormData({
+      name: user?.name || "",
+      email: user?.userName || "",
+      phone: user?.phone || "",
+      terms: false,
+    });
   };
 
   const handleFavorite = () => {
@@ -276,18 +317,6 @@ const TourDetail = () => {
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success("URL đã được sao chép!");
-    }
-  };
-
-  const fetchAdditionalImages = async () => {
-    try {
-      setIsLoadingImages(true);
-      const response = await axiosInstance.get(`/tours/${tourId}/images`);
-      setAdditionalImages(response.data.result || []);
-    } catch (error) {
-      console.error("Error fetching additional images:", error);
-    } finally {
-      setIsLoadingImages(false);
     }
   };
 
@@ -322,7 +351,7 @@ const TourDetail = () => {
         <div className="flex flex-wrap items-center text-gray-600 gap-x-4 gap-y-2">
           <div className="flex items-center">
             <MapPin className="h-4 w-4 mr-1 text-primary" />
-            <span>{tour.destination}</span>
+            <span>{tour.location}</span>
           </div>
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-1 text-primary" />
@@ -438,7 +467,7 @@ const TourDetail = () => {
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <li className="flex items-start">
                 <CheckCircle className="h-5 w-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
-                <span>Tham quan các địa điểm nổi tiếng nhất tại {tour.destination}</span>
+                <span>Tham quan các địa điểm nổi tiếng nhất tại {tour.location}</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle className="h-5 w-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
@@ -473,40 +502,37 @@ const TourDetail = () => {
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">Lịch trình</h2>
             <div className="space-y-6">
-              {itineraries.map((itinerary) => {
-                console.log("Rendering itinerary with full data:", itinerary);
-                return (
-                  <div key={itinerary.itineraryId} className="bg-gray-50 p-6 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">
-                      Ngày {itinerary.dayNumber}: {itinerary.dayTitle}
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-start">
-                        <MapPin className="h-5 w-5 mr-2 text-primary mt-1 flex-shrink-0" />
-                        <div>
-                          <p className=" font-medium text-gray-600">{itinerary.destination?.destinationName || "Chưa có thông tin"}</p>
-                        </div>
+              {itineraries.map((itinerary) => (
+                <div key={itinerary.itineraryId} className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3">
+                    Ngày {itinerary.dayNumber}: {itinerary.dayTitle}
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <MapPin className="h-5 w-5 mr-2 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-gray-600">{itinerary.destination?.destinationName || "Chưa có thông tin"}</p>
                       </div>
-                      <div className="flex items-start">
-                        <MessageSquare className="h-5 w-5 mr-2 text-primary mt-1 flex-shrink-0" />
-                        <div>
-                          <div className="font-medium prose max-w-none text-gray-600">
-                            {itinerary.description ? (
-                              itinerary.description.split("\n").map((line, index) => (
-                                <p key={index} className="mb-2">
-                                  {line}
-                                </p>
-                              ))
-                            ) : (
-                              <p>Chưa có mô tả chi tiết</p>
-                            )}
-                          </div>
+                    </div>
+                    <div className="flex items-start">
+                      <MessageSquare className="h-5 w-5 mr-2 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium prose max-w-none text-gray-600">
+                          {itinerary.description ? (
+                            itinerary.description.split("\n").map((line, index) => (
+                              <p key={index} className="mb-2">
+                                {line}
+                              </p>
+                            ))
+                          ) : (
+                            <p>Chưa có mô tả chi tiết</p>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
               {itineraries.length === 0 && <div className="text-center py-8 text-gray-500">Chưa có thông tin lịch trình cho tour này</div>}
             </div>
           </div>
@@ -633,7 +659,7 @@ const TourDetail = () => {
                           <span className="font-medium">Ngày khởi hành:</span> {formatDate(tour?.departureDate)}
                         </div>
                         <div>
-                          <span className="font-medium">Khách hàng:</span> {user?.name || "Bạn"}
+                          <span className="font-medium">Khách hàng:</span> {formData.name || "Bạn"}
                         </div>
                         <div>
                           <span className="font-medium">Số lượng:</span> {successfulBookingData.numberOfPeople} người
@@ -680,22 +706,22 @@ const TourDetail = () => {
                       </div>
                     </div>
                   </div>
-                  <form onSubmit={handleBooking}>
+                  <form onSubmit={handleBooking} className="space-y-6">
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
-                        <Input type="text" placeholder="Nhập họ tên của bạn" value={user?.name || ""} required disabled={!!user?.name} />
+                        <Input type="text" name="name" placeholder="Nhập họ tên của bạn" value={formData.name} onChange={handleInputChange} required />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <Input type="email" placeholder="Nhập email của bạn" value={user?.userName || ""} required disabled={!!user?.userName} />
+                        <Input type="email" name="email" placeholder="Nhập email của bạn" value={formData.email} onChange={handleInputChange} required />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                        <Input type="tel" placeholder="Nhập số điện thoại của bạn" value={user?.phone || ""} required disabled={!!user?.phone} />
+                        <Input type="tel" name="phone" placeholder="Nhập số điện thoại của bạn" value={formData.phone} onChange={handleInputChange} required />
                       </div>
                       <div className="flex items-start">
-                        <input id="terms" name="terms" type="checkbox" required className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1" />
+                        <input id="terms" name="terms" type="checkbox" checked={formData.terms} onChange={handleInputChange} required className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1" />
                         <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
                           Tôi đồng ý với{" "}
                           <a href="#" className="text-primary hover:underline">
@@ -713,7 +739,7 @@ const TourDetail = () => {
                       <Button variant="outline" type="button" onClick={closeBookingModal}>
                         Hủy
                       </Button>
-                      <Button type="submit" disabled={isBookingLoading}>
+                      <Button type="submit" disabled={isBookingLoading || !formData.terms}>
                         {isBookingLoading ? "Đang xử lý..." : "Xác nhận đặt tour"}
                       </Button>
                     </div>

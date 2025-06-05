@@ -123,10 +123,7 @@ const ManageTours = () => {
   const handleToggleFeatured = async (tourId) => {
     try {
       const tour = tours.find((t) => t.tourId === tourId);
-      // Toggle the featured status (using the internal 'featured' property)
       const updatedTour = { ...tour, featured: !(tour.featured === true || tour.featured === "true") };
-
-      // Send the update to the backend using 'isFeatured'
       await axiosInstance.put(`/tours/${tourId}`, { ...updatedTour, featured: updatedTour.featured });
 
       setTours(tours.map((t) => (t.tourId === tourId ? updatedTour : t)));
