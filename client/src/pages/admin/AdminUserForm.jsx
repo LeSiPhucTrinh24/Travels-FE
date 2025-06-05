@@ -48,10 +48,47 @@ const UserForm = ({ user, isEditing = false }) => {
     }));
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.name) {
+      errors.name = "Họ tên không được để trống.";
+    }
+
+    if (!isEditing) {
+      if (!formData.userName) {
+        errors.userName = "Email không được để trống.";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.userName)) {
+        errors.userName = "Email không đúng định dạng.";
+      }
+      if (!formData.password) {
+        errors.password = "Mật khẩu không được để trống.";
+      } else if (formData.password.length < 6) {
+        errors.password = "Mật khẩu phải có ít nhất 6 ký tự.";
+      }
+    }
+
+    if (!formData.phone) {
+      errors.phone = "Số điện thoại không được để trống.";
+    }
+
+    if (!formData.address) {
+      errors.address = "Địa chỉ không được để trống.";
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({}); // Clear previous errors
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setIsSubmitting(false);
+      return; // Stop submission if there are errors
+    }
 
     const form = new FormData();
     form.append("fullName", formData.name);
@@ -178,6 +215,7 @@ const UserForm = ({ user, isEditing = false }) => {
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Họ tên</label>
           <Input name="name" value={formData.name} onChange={handleChange} placeholder="Nhập họ tên" required disabled={isSubmitting} />
+          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
         </div>
 
         {!isEditing && (
@@ -185,11 +223,13 @@ const UserForm = ({ user, isEditing = false }) => {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-900">Email (Tên đăng nhập)</label>
               <Input name="userName" type="email" value={formData.userName} onChange={handleChange} placeholder="Nhập email" required disabled={isSubmitting} />
+              {errors.userName && <p className="text-red-500 text-xs mt-1">{errors.userName}</p>}
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-900">Mật khẩu</label>
               <Input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Nhập mật khẩu" required minLength={6} disabled={isSubmitting} />
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
           </>
         )}
@@ -197,11 +237,13 @@ const UserForm = ({ user, isEditing = false }) => {
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Số điện thoại</label>
           <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="Nhập số điện thoại" required disabled={isSubmitting} />
+          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Địa chỉ</label>
           <Input name="address" value={formData.address} onChange={handleChange} placeholder="Nhập địa chỉ" required disabled={isSubmitting} />
+          {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
         </div>
 
         <div className="space-y-2">

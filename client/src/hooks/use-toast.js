@@ -145,13 +145,13 @@ export const useToast = () => {
 
       switch (variant) {
         case "destructive":
-          return toastify.error(message, options);
+          return toastify.error(message || "Đã xảy ra lỗi!", options);
         case "success":
-          return toastify.success(message, options);
+          return toastify.success(message || "Thao tác thành công!", options);
         case "warning":
-          return toastify.warning(message, options);
+          return toastify.warning(message || "Cảnh báo!", options);
         default:
-          return toastify.info(message, options);
+          return toastify.info(message || "Thông tin", options);
       }
     },
   };

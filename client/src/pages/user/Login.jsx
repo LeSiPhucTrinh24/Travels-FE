@@ -19,11 +19,37 @@ const Login = () => {
     userName: "",
     password: "",
   });
+  const [errors, setErrors] = useState({
+    userName: "",
+    password: "",
+  });
 
-  // Hàm kiểm tra role (không phân biệt chữ hoa thường)
   const hasRole = (userRoles, role) => {
     if (!userRoles || !Array.isArray(userRoles)) return false;
     return userRoles.some((r) => r.toLowerCase() === role.toLowerCase());
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {
+      userName: "",
+      password: "",
+    };
+
+    // Validate username
+    if (!formData.userName.trim()) {
+      newErrors.userName = "Vui lòng nhập tên đăng nhập";
+      isValid = false;
+    }
+
+    // Validate password (giống username)
+    if (!formData.password) {
+      newErrors.password = "Mật khẩu không được để trống";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleChange = (e) => {
@@ -36,6 +62,16 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      toast({
+        variant: "destructive",
+        title: "Thông tin chưa hợp lệ",
+        description: "Vui lòng kiểm tra lại tên đăng nhập và mật khẩu.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await axios.post(
@@ -54,13 +90,11 @@ const Login = () => {
 
       const data = response.data.result || response.data;
 
-      // Lưu token vào localStorage
       if (data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.userId);
       }
 
-      // Chuẩn bị thông tin user để lưu vào context
       const userData = {
         id: data.userId || null,
         name: data.fullName || "",
@@ -72,7 +106,6 @@ const Login = () => {
         roles: Array.isArray(data.roles) ? data.roles : [],
       };
 
-      // Gọi hàm login lưu user vào context
       login(userData);
 
       toast({
@@ -80,12 +113,10 @@ const Login = () => {
         description: `Chào mừng ${userData.name || userData.userName}!`,
       });
 
-      // Kiểm tra xem có return URL không
       const location = window.location;
       const params = new URLSearchParams(location.search);
       const returnUrl = params.get("returnUrl") || location.state?.from;
 
-      // Điều hướng theo vai trò và return URL
       if (hasRole(userData.roles, "ADMIN")) {
         navigate("/admin");
       } else if (returnUrl) {
@@ -94,31 +125,33 @@ const Login = () => {
         navigate("/");
       }
     } catch (error) {
+      let errorMessage = "Tên đăng nhập hoặc mật khẩu không chính xác";
       if (error.response) {
         const status = error.response.status;
-        const message = error.response.data?.message || "Tài khoản hoặc mật khẩu không đúng.";
+        const message = error.response.data?.message || "";
 
         if (status === 401) {
-          toast({
-            variant: "destructive",
-            title: "Không được phép",
-            description: "Tài khoản hoặc mật khẩu không chính xác.",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: `Lỗi ${status}`,
-            description: message,
-          });
+          const lowerMsg = message.toLowerCase();
+          if (lowerMsg.includes("mật khẩu") || lowerMsg.includes("password")) {
+            errorMessage = "Mật khẩu không chính xác";
+          } else if (lowerMsg.includes("không tồn tại") || lowerMsg.includes("username")) {
+            errorMessage = "Tên đăng nhập không tồn tại";
+          } else {
+            errorMessage = "Tên đăng nhập hoặc mật khẩu không chính xác";
+          }
         }
-        console.error("Chi tiết lỗi:", error.response.data);
+
+        toast({
+          variant: "destructive",
+          title: "Đăng nhập thất bại",
+          description: errorMessage,
+        });
       } else {
         toast({
           variant: "destructive",
-          title: "Lỗi không xác định",
-          description: error.message || "Không thể kết nối đến máy chủ.",
+          title: "Lỗi kết nối",
+          description: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng của bạn.",
         });
-        console.error("Lỗi không xác định:", error);
       }
     } finally {
       setIsLoading(false);
@@ -128,14 +161,13 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // Giả lập Google Auth nếu chưa tích hợp thật
       const result = await mockAuth.signInWithGoogle();
       if (result && result.user) {
         const userData = {
           id: result.user.uid,
           name: result.user.displayName,
           email: result.user.email,
-          roles: ["USER"], // giả lập role USER
+          roles: ["USER"],
         };
         login(userData);
         toast({
@@ -172,14 +204,16 @@ const Login = () => {
               <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
                 Tên đăng nhập
               </label>
-              <Input id="userName" name="userName" type="text" required value={formData.userName} onChange={handleChange} placeholder="Nhập tên đăng nhập hoặc email" />
+              <Input id="userName" name="userName" type="text" required value={formData.userName} onChange={handleChange} placeholder="Nhập tên đăng nhập" className={errors.userName ? "border-red-500" : ""} />
+              {errors.userName && <p className="mt-1 text-sm text-red-500">{errors.userName}</p>}
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Mật khẩu
               </label>
-              <Input id="password" name="password" type="password" required value={formData.password} onChange={handleChange} placeholder="Nhập mật khẩu của bạn" />
+              <Input id="password" name="password" type="password" required value={formData.password} onChange={handleChange} placeholder="Nhập mật khẩu của bạn" className={errors.password ? "border-red-500" : ""} />
+              {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
             </div>
 
             <div className="flex justify-end">

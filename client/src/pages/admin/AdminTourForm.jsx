@@ -30,7 +30,7 @@ const AdminTourForm = () => {
     tourTypeId: "",
     status: true,
     featured: false,
-    destination: "",
+    location: "",
   });
 
   const [categories, setCategories] = useState([]);
@@ -91,7 +91,7 @@ const AdminTourForm = () => {
         tourTypeId: tour.tourTypeId || "",
         status: tour.status ?? true,
         featured: tour.featured === true || tour.featured === "true",
-        destination: tour.destination || "",
+        location: tour.location || "",
       });
       console.log("Form data after setting:", formData);
       if (tour.coverImage) {
@@ -183,7 +183,7 @@ const AdminTourForm = () => {
       formDataToSend.append("tourTypeId", formData.tourTypeId);
       formDataToSend.append("status", formData.status === true || formData.status === "true" ? "true" : "false");
       formDataToSend.append("featured", formData.featured === true || formData.featured === "true" ? "true" : "false");
-      formDataToSend.append("destination", formData.destination || "");
+      formDataToSend.append("location", formData.location || "");
 
       // Xử lý coverImage
       if (image) {
@@ -195,7 +195,7 @@ const AdminTourForm = () => {
       // Log để debug
       console.log("Form data before sending:", {
         ...formData,
-        destination: formData.destination,
+        location: formData.location,
         coverImage: formData.coverImage,
         image: image ? "File present" : "No file",
       });
@@ -312,7 +312,7 @@ const AdminTourForm = () => {
                 <MapPin className="w-4 h-4 text-gray-500" />
                 Điểm đến
               </label>
-              <Input name="destination" value={formData.destination} onChange={handleInputChange} placeholder="Nhập điểm đến" required className="mt-1" />
+              <Input name="location" value={formData.location} onChange={handleInputChange} placeholder="Nhập điểm đến" required className="mt-1" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

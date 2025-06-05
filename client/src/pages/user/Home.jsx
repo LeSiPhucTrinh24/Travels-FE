@@ -15,6 +15,22 @@ const formatCurrency = (value) => {
     maximumFractionDigits: 0,
   }).format(value);
 };
+// Format date for display
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
+
+// Format date for input
+const formatDateForInput = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toISOString().split("T")[0];
+};
 
 // Tour card component
 const TourCard = ({ tour, onClick }) => (
@@ -29,11 +45,11 @@ const TourCard = ({ tour, onClick }) => (
       <div className="flex flex-col gap-1 mb-2 text-gray-500 text-sm">
         <div className="flex items-center">
           <MapPin className="h-4 w-4 mr-1" />
-          <span>Khởi hành: {tour.departureLocation}</span>
+          <span>Điểm đến: {tour.location}</span>
         </div>
         <div className="flex items-center">
           <MapPin className="h-4 w-4 mr-1" />
-          <span>Điểm đến: {tour.destination}</span>
+          <span>Khởi hành: {formatDate(tour.departureDate)}</span>
         </div>
       </div>
 
@@ -50,16 +66,15 @@ const TourCard = ({ tour, onClick }) => (
   </div>
 );
 
-// Destination card component
-const DestinationCard = ({ destination, onClick }) => (
-  <div className="relative rounded-lg overflow-hidden group cursor-pointer h-60" onClick={onClick}>
-    <img src={destination.imageUrl} alt={destination.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
-    <div className="absolute bottom-0 left-0 p-4">
-      <h3 className="text-white font-bold text-lg mb-1">{destination.name}</h3>
-      <div className="flex items-center text-white/80 text-sm">
-        <span className="mr-2">{destination.tourCount} tour</span>
-        <span>từ {formatCurrency(destination.minPrice)}</span>
+// Location card component
+const LocationCard = ({ location, onClick }) => (
+  <div className="relative group cursor-pointer" onClick={onClick}>
+    <img src={location.imageUrl} alt={location.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+      <h3 className="text-white font-bold text-lg mb-1">{location.name}</h3>
+      <div className="text-white text-sm">
+        <span className="mr-2">{location.tourCount} tour</span>
+        <span>từ {formatCurrency(location.minPrice)}</span>
       </div>
     </div>
   </div>
@@ -91,7 +106,7 @@ const Home = () => {
   const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
   const [displayedFeaturedTours, setDisplayedFeaturedTours] = useState([]);
   const [searchParams, setSearchParams] = useState({
-    destination: "",
+    location: "",
     date: "",
     people: "",
   });
@@ -113,7 +128,10 @@ const Home = () => {
         setDisplayedFeaturedTours(featured);
       } catch (error) {
         console.error("Error fetching featured tours:", error);
-        toast.error("Không thể tải danh sách tour nổi bật.");
+        // Don't show error toast for unauthorized access
+        if (error.response?.status !== 401) {
+          toast.error("Không thể tải danh sách tour nổi bật.");
+        }
         setFeaturedTours([]);
         setDisplayedFeaturedTours([]);
       } finally {
@@ -128,11 +146,11 @@ const Home = () => {
   useEffect(() => {
     let results = [...featuredTours];
 
-    // Filter by destination
-    if (searchParams.destination) {
+    // Filter by location
+    if (searchParams.location) {
       results = results.filter((tour) => {
-        const searchTerm = searchParams.destination.toLowerCase();
-        return (tour.destination && tour.destination.toLowerCase().includes(searchTerm)) || (tour.departureLocation && tour.departureLocation.toLowerCase().includes(searchTerm)) || (tour.name && tour.name.toLowerCase().includes(searchTerm));
+        const searchTerm = searchParams.location.toLowerCase();
+        return (tour.location && tour.location.toLowerCase().includes(searchTerm)) || (tour.departureLocation && tour.departureLocation.toLowerCase().includes(searchTerm)) || (tour.name && tour.name.toLowerCase().includes(searchTerm));
       });
     }
 
@@ -167,8 +185,8 @@ const Home = () => {
     e.preventDefault();
     // Tạo object chứa các tham số tìm kiếm
     const searchQuery = {
-      destination: searchParams.destination || "",
-      date: searchParams.date || "",
+      location: searchParams.location || "",
+      date: searchParams.date ? formatDateForInput(searchParams.date) : "",
       people: searchParams.people || "",
     };
 
@@ -187,13 +205,13 @@ const Home = () => {
     navigate(`/tours/${tourId}`);
   };
 
-  // Handle destination card click
-  const handleDestinationClick = (destination) => {
-    navigate(`/tours?destination=${encodeURIComponent(destination)}`);
+  // Handle location card click
+  const handleLocationClick = (location) => {
+    navigate(`/tours?location=${encodeURIComponent(location)}`);
   };
 
-  // Sample destinations
-  const destinations = [
+  // Sample locations
+  const locations = [
     {
       id: 1,
       name: "Hạ Long",
@@ -277,14 +295,14 @@ const Home = () => {
               <form onSubmit={handleSearchSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label htmlFor="destination" className="block text-xs font-medium text-gray-500 mb-1">
+                    <label htmlFor="location" className="block text-xs font-medium text-gray-500 mb-1">
                       Điểm đến
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MapPin className="h-5 w-5 text-gray-400" />
                       </div>
-                      <Input id="destination" value={searchParams.destination} onChange={(e) => setSearchParams({ ...searchParams, destination: e.target.value })} placeholder="Bạn muốn đi đâu?" className="pl-10 text-gray-900" />
+                      <Input id="location" value={searchParams.location} onChange={(e) => setSearchParams({ ...searchParams, location: e.target.value })} placeholder="Bạn muốn đi đâu?" className="pl-10 text-gray-900" />
                     </div>
                   </div>
 
@@ -296,7 +314,7 @@ const Home = () => {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Calendar className="h-5 w-5 text-gray-400" />
                       </div>
-                      <Input id="date" type="date" value={searchParams.date} onChange={(e) => setSearchParams({ ...searchParams, date: e.target.value })} className="pl-10 text-gray-900" />
+                      <Input id="date" type="date" value={searchParams.date ? formatDateForInput(searchParams.date) : ""} onChange={(e) => setSearchParams({ ...searchParams, date: e.target.value })} className="pl-10 text-gray-900" />
                     </div>
                   </div>
 
@@ -337,7 +355,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Popular destinations */}
+      {/* Popular locations */}
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -352,8 +370,8 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {destinations.map((destination) => (
-              <DestinationCard key={destination.id} destination={destination} onClick={() => handleDestinationClick(destination.name)} />
+            {locations.map((location) => (
+              <LocationCard key={location.id} location={location} onClick={() => handleLocationClick(location.name)} />
             ))}
           </div>
 

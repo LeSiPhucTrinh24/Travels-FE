@@ -11,6 +11,8 @@ const ManageUsers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchUsers();
@@ -28,8 +30,18 @@ const ManageUsers = () => {
     }
   };
 
-  // Filter users based on search term và chỉ lấy khách hàng
-  const filteredUsers = users.filter((user) => (user.fullName || user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.userName || user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.phone || "").includes(searchTerm));
+  // Filter users based on search term and exclude admins
+  const filteredUsers = users.filter((user) => !user.roles?.includes("ADMIN") && ((user.fullName || user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.userName || user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) || (user.phone || "").includes(searchTerm)));
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const handleEdit = (user) => {
     navigate(`/admin/users/edit/${user.userId || user.id}`);
@@ -51,7 +63,6 @@ const ManageUsers = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
-
         <Button onClick={() => navigate("/admin/users/add")}>
           <Plus className="h-4 w-4 mr-2" />
           Thêm người dùng
@@ -63,7 +74,6 @@ const ManageUsers = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
           <Input placeholder="Tìm kiếm người dùng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
         </div>
-
         <div className="flex gap-2">
           <Button variant="outline">
             <Filter className="h-4 w-4 mr-2" />
@@ -97,16 +107,16 @@ const ManageUsers = () => {
                     Đang tải...
                   </td>
                 </tr>
-              ) : filteredUsers.length === 0 ? (
+              ) : currentUsers.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-8">
                     Không có người dùng nào
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user, idx) => (
+                currentUsers.map((user, idx) => (
                   <tr key={user.userId || user.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-4 text-sm text-gray-900">{idx + 1}</td>
+                    <td className="py-4 px-4 text-sm text-gray-900">{startIndex + idx + 1}</td>
                     <td className="py-4 px-4 text-sm text-gray-900">
                       <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-100">
                         {user.avatar || user.image ? (
@@ -122,7 +132,6 @@ const ManageUsers = () => {
                     <td className="py-4 px-4 text-sm text-gray-500">
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${user.roles && user.roles.includes("ADMIN") ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>{user.roles && user.roles.includes("ADMIN") ? "Admin" : "Khách hàng"}</span>
                     </td>
-
                     <td className="py-4 px-4 text-sm text-gray-500">
                       <div className="flex space-x-2">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(user)}>
@@ -138,26 +147,26 @@ const ManageUsers = () => {
               )}
             </tbody>
           </table>
-
           {filteredUsers.length === 0 && (
             <div className="text-center py-8">
               <p className="text-gray-500">Không tìm thấy người dùng nào phù hợp với từ khóa "{searchTerm}"</p>
             </div>
           )}
         </div>
-
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 flex justify-between items-center">
           <div className="text-xs text-gray-500">
-            Hiển thị {filteredUsers.length} của {users.length} người dùng
+            Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} của {filteredUsers.length} người dùng
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" disabled>
+            <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
               Trước
             </Button>
-            <Button variant="outline" size="sm" className="bg-primary text-white">
-              1
-            </Button>
-            <Button variant="outline" size="sm" disabled>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button key={page} variant="outline" size="sm" className={currentPage === page ? "bg-primary text-white" : ""} onClick={() => handlePageChange(page)}>
+                {page}
+              </Button>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
               Sau
             </Button>
           </div>

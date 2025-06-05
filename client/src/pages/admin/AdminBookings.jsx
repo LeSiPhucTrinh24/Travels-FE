@@ -294,24 +294,23 @@ const ManageBookings = () => {
 
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 flex justify-between items-center">
           <div className="text-xs text-gray-500">
-            {/* Update display text for pagination */}
             Hiển thị {indexOfFirstBooking + 1} đến {Math.min(indexOfLastBooking, filteredBookings.length)} của {filteredBookings.length} đơn đặt tour
           </div>
-          <div className="flex space-x-2">
-            {/* Pagination buttons */}
-            <Button variant="outline" size="sm" onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
-              Trước
-            </Button>
-            {/* Render page numbers */}
-            {[...Array(totalPages)].map((_, index) => (
-              <Button key={index} variant="outline" size="sm" onClick={() => paginate(index + 1)} className={currentPage === index + 1 ? "bg-primary text-white" : ""}>
-                {index + 1}
+          {filteredBookings.length > itemsPerPage && (
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
+                Trước
               </Button>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}>
-              Sau
-            </Button>
-          </div>
+              {[...Array(totalPages)].map((_, index) => (
+                <Button key={index} variant="outline" size="sm" onClick={() => paginate(index + 1)} className={currentPage === index + 1 ? "bg-primary text-white" : ""}>
+                  {index + 1}
+                </Button>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}>
+                Sau
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
