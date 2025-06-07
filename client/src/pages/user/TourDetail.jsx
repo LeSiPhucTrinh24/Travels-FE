@@ -4,9 +4,14 @@ import { MapPin, Calendar, Clock, Users, DollarSign, Star, Heart, Share2, CheckC
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { vi } from "date-fns/locale";
 import axiosInstance from "@/utils/axiosInstance";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/AuthContext";
+import { CalendarIcon } from "lucide-react";
 
 // Utility function to format currency
 const formatCurrency = (value) => {
@@ -52,11 +57,13 @@ const TourDetail = () => {
   const [itineraries, setItineraries] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.userName || "",
     phone: user?.phone || "",
     terms: false,
+    departureDate: "",
   });
 
   useEffect(() => {
@@ -126,6 +133,7 @@ const TourDetail = () => {
       email: user?.userName || "",
       phone: user?.phone || "",
       terms: false,
+      departureDate: "",
     });
   }, [user]);
 
@@ -145,6 +153,12 @@ const TourDetail = () => {
 
     if (!formData.terms) {
       setBookingError("Vui lòng đồng ý với Điều khoản và Chính sách.");
+      setIsBookingLoading(false);
+      return;
+    }
+
+    if (!formData.departureDate) {
+      setBookingError("Vui lòng chọn ngày khởi hành.");
       setIsBookingLoading(false);
       return;
     }
@@ -172,12 +186,17 @@ const TourDetail = () => {
       const now = new Date();
       const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
 
+      const departureDate = new Date(formData.departureDate);
+      departureDate.setHours(12, 0, 0, 0);
+      const vietnamDepartureDate = new Date(departureDate.getTime() + 7 * 60 * 60 * 1000);
+
       const bookingData = {
         userId: user.id,
         tourId: tourId,
         numberOfPeople: numTravelers,
         totalPrice: calculateTotalPrice(),
         bookingDate: vietnamTime.toISOString(),
+        departureDate: vietnamDepartureDate.toISOString(),
         status: 0,
         name: formData.name,
         email: formData.email,
@@ -197,10 +216,10 @@ const TourDetail = () => {
       formDataUpdate.append("description", tour.description);
       formDataUpdate.append("price", tour.price);
       formDataUpdate.append("duration", tour.duration);
-      formDataUpdate.append("departureDate", tour.departureDate);
       formDataUpdate.append("departureLocation", tour.departureLocation);
       formDataUpdate.append("maxPeople", remainingSlots);
       formDataUpdate.append("tourTypeId", tour.tourTypeId);
+      formDataUpdate.append("location", tour.location || "");
       formDataUpdate.append("status", tour.status);
       formDataUpdate.append("featured", tour.featured);
       formDataUpdate.append("coverImage", tour.coverImage);
@@ -275,7 +294,8 @@ const TourDetail = () => {
     } catch (error) {
       console.error("Error submitting review:", error);
       if (error.response) {
-        toast.error(error.response.data.message || "Có lỗi xảy ra khi gửi đánh giá");
+        toast.error("Bạn cần đặt tour này trước khi có thể đánh giá");
+        // toast.error(error.response.data.message || "Có lỗi xảy ra khi gửi đánh giá");
       } else {
         toast.error("Không thể gửi đánh giá. Vui lòng thử lại.");
       }
@@ -298,6 +318,7 @@ const TourDetail = () => {
       email: user?.userName || "",
       phone: user?.phone || "",
       terms: false,
+      departureDate: "",
     });
   };
 
@@ -416,11 +437,28 @@ const TourDetail = () => {
             >
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày khởi hành</label>
-                  <div className="relative flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-gray-400" />
-                    {tour?.departureDate && <span className="text-base text-gray-800 font-semibold">{formatDate(tour?.departureDate)}</span>}
-                  </div>
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">Ngày khởi hành</label>
+                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1", !formData.departureDate && "text-gray-500")}>
+                        {" "}
+                        <CalendarIcon className="mr-2 h-4 w-4" /> {formData.departureDate ? formatDate(formData.departureDate) : <span>Chọn ngày</span>}{" "}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.departureDate}
+                        onSelect={(date) => {
+                          setFormData((prev) => ({ ...prev, departureDate: date }));
+                          setIsCalendarOpen(false);
+                        }}
+                        locale={vi}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số người</label>
@@ -656,7 +694,7 @@ const TourDetail = () => {
                           <span className="font-medium">Ngày đặt:</span> {formatDate(successfulBookingData.bookingDate)}
                         </div>
                         <div>
-                          <span className="font-medium">Ngày khởi hành:</span> {formatDate(tour?.departureDate)}
+                          <span className="font-medium">Ngày khởi hành:</span> {formatDate(formData.departureDate)}
                         </div>
                         <div>
                           <span className="font-medium">Khách hàng:</span> {formData.name || "Bạn"}
@@ -694,7 +732,7 @@ const TourDetail = () => {
                     <div className="space-y-2 text-gray-600">
                       <div className="flex justify-between">
                         <span>Ngày khởi hành:</span>
-                        <span>{formatDate(tour?.departureDate)}</span>
+                        <span>{formatDate(formData.departureDate)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Số lượng:</span>

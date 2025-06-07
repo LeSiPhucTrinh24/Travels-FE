@@ -18,12 +18,19 @@ const formatCurrency = (value) => {
 
 // Format date for display
 const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ""; // Check if date is valid
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "";
+  }
 };
 
 // Format date for input
@@ -46,11 +53,7 @@ const TourCard = ({ tour, onClick }) => (
       <div className="flex flex-col gap-1 mb-2 text-gray-500 text-sm">
         <div className="flex items-center">
           <MapPin className="h-4 w-4 mr-1" />
-          <span>Điểm đến: {tour.location}</span>
-        </div>
-        <div className="flex items-center">
-          <Calendar className="h-4 w-4 mr-1" />
-          <span>Khởi hành: {formatDate(tour.departureDate)}</span>
+          <span>{tour.location}</span>
         </div>
       </div>
 
@@ -133,41 +136,7 @@ const Tours = () => {
       setIsLoading(true);
       try {
         const response = await axiosInstance.get("/tours");
-        const currentDate = new Date();
-
-        // hàm tự động sét lại trạng thái ngừng hoạt động của tour khi ngày khởi hành < ngày hiện tại
-        const activeTours = response.data.result
-          .map((tour) => {
-            const departureDate = new Date(tour.departureDate);
-            const isExpired = departureDate < currentDate;
-
-            if (isExpired && (tour.status === true || tour.status === "true")) {
-              axiosInstance
-                .put(
-                  `/tours/${tour.tourId}`,
-                  {
-                    ...tour,
-                    status: false,
-                  },
-                  {
-                    headers: {
-                      Authorization: `Bearer ${localStorage.getItem("token")}`,
-                      "Content-Type": "multipart/form-data",
-                    },
-                  }
-                )
-                .catch((error) => {
-                  console.error("Error updating tour status:", error);
-                });
-            }
-
-            return {
-              ...tour,
-              status: !isExpired && (tour.status === true || tour.status === "true"),
-            };
-          })
-          .filter((tour) => tour.status === true);
-
+        const activeTours = response.data.result.filter((tour) => tour.status === true || tour.status === "true");
         setTours(activeTours);
         setFilteredTours(activeTours);
       } catch (error) {
@@ -181,7 +150,6 @@ const Tours = () => {
     fetchTours();
   }, []);
 
-  // Fetch tour types
   useEffect(() => {
     const fetchTourTypes = async () => {
       try {
@@ -199,14 +167,12 @@ const Tours = () => {
   // Tự động áp dụng bộ lọc khi searchParams thay đổi
   useEffect(() => {
     applyFilters(searchParams);
-  }, [searchParams, tours]); // Chạy lại khi searchParams hoặc tour du lịch thay đổi
+  }, [searchParams, tours]);
 
-  // Handle tour card click
   const handleTourClick = (tourId) => {
     navigate(`/tours/${tourId}`);
   };
 
-  // Handle filter change
   const handleFilterChange = (name, value) => {
     if (name === "date") {
       value = formatDateForInput(value);
@@ -215,39 +181,31 @@ const Tours = () => {
     setSearchParams(newParams);
   };
 
-  // Apply filters
   const applyFilters = (params = searchParams) => {
     let results = [...tours];
 
-    // Filter by location
     if (params.location) {
       results = results.filter((tour) => tour.location && tour.location.toLowerCase().includes(params.location.toLowerCase()));
     }
 
-    // Filter by tour type
     if (params.tourTypeId) {
       results = results.filter((tour) => tour.tourTypeId === params.tourTypeId);
     }
 
-    // Filter by date
     if (params.date) {
       const selectedDate = new Date(params.date);
-      // Set time to start of day in local timezone
       selectedDate.setHours(0, 0, 0, 0);
 
       results = results.filter((tour) => {
-        if (!tour.departureDate) return false;
+        // Nếu tour không có ngày khởi hành, vẫn hiển thị tour đó
+        if (!tour.departureDate) return true;
 
         const tourDate = new Date(tour.departureDate);
-        // Set time to start of day in local timezone
         tourDate.setHours(0, 0, 0, 0);
-
-        // Compare dates using timestamp
         return tourDate.getTime() === selectedDate.getTime();
       });
     }
 
-    // Filter by price range
     if (params.minPrice) {
       results = results.filter((tour) => tour.price >= parseFloat(params.minPrice));
     }

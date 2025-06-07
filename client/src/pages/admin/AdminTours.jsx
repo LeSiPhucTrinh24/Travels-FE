@@ -189,7 +189,6 @@ const ManageTours = () => {
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ảnh tour</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên tour</th>
-                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày khởi hành</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nổi bật</th>
@@ -203,9 +202,10 @@ const ManageTours = () => {
                   <td className="py-4 px-4 text-sm text-gray-900">{startIndex + idx + 1}</td>
                   <td className="py-4 px-4 text-sm">{tour.coverImage && <img src={tour.coverImage} alt={tour.name} className="w-20 h-14 object-cover rounded" />}</td>
                   <td className="py-4 px-4 text-sm font-medium text-gray-900">{tour.name}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{tour.departureDate ? new Date(tour.departureDate).toLocaleDateString("vi-VN") : ""}</td>
                   <td className="py-4 px-4 text-sm text-gray-900 font-medium">{formatCurrency(tour.price)}</td>
-                  <td className="py-4 px-4 text-sm text-gray-500">{tour.duration} ngày</td>
+                  <td className="py-4 px-4 text-sm text-gray-500">
+                    {tour.duration} ngày {tour.duration - 1} đêm
+                  </td>
                   <td className="py-4 px-4 text-sm text-gray-500">
                     <button
                       onClick={(e) => {

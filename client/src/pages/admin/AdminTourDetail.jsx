@@ -51,10 +51,7 @@ const AdminTourDetail = ({ tour, isOpen, onClose, categories = [] }) => {
                 <p className="text-sm text-gray-500">Thời gian</p>
                 <p className="font-medium">{tour.duration} ngày</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Ngày khởi hành</p>
-                <p className="font-medium">{tour.departureDate ? format(new Date(tour.departureDate), "dd/MM/yyyy") : ""}</p>
-              </div>
+
               <div>
                 <p className="text-sm text-gray-500">Điểm khởi hành</p>
                 <p className="font-medium">{tour.departureLocation}</p>

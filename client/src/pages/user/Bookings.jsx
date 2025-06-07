@@ -159,10 +159,10 @@ const Bookings = () => {
           formData.append("description", booking.tour.description);
           formData.append("price", booking.tour.price);
           formData.append("duration", booking.tour.duration);
-          formData.append("departureDate", booking.tour.departureDate);
           formData.append("departureLocation", booking.tour.departureLocation);
           formData.append("maxPeople", booking.tour.maxPeople + booking.numberOfPeople); // Add back the cancelled slots
           formData.append("tourTypeId", booking.tour.tourTypeId);
+          formData.append("location", booking.tour.location || ""); // Ensure location is preserved
           formData.append("status", booking.tour.status);
           formData.append("featured", booking.tour.featured);
           formData.append("coverImage", booking.tour.coverImage); // Add back the cover image
@@ -295,7 +295,7 @@ const Bookings = () => {
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span>Ngày khởi hành: {formatDateOnly(booking.tour?.departureDate)}</span>
+                          <span>Ngày khởi hành: {formatDateOnly(booking.departureDate)}</span>
                         </div>
                         <div className="flex items-center">
                           <User className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
@@ -324,7 +324,7 @@ const Bookings = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Ngày khởi hành:</span>
-                            <span>{formatDateOnly(booking.tour?.departureDate)}</span>
+                            <span>{formatDateOnly(booking.departureDate)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Khách hàng:</span>
@@ -450,7 +450,7 @@ const Bookings = () => {
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Ngày khởi hành</p>
-                      <p className="font-medium text-gray-900">{formatDateOnly(selectedBooking?.tour?.departureDate) || "N/A"}</p>
+                      <p className="font-medium text-gray-900">{formatDateOnly(selectedBooking?.departureDate) || "N/A"}</p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Địa điểm khởi hành</p>
