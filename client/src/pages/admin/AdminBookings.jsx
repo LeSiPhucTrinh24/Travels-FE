@@ -191,21 +191,18 @@ const ManageBookings = () => {
         </div>
       </div>
 
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input placeholder="Tìm kiếm đơn đặt tour..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-        </div>
-
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Calendar className="h-4 w-4 mr-2" />
-            Lọc theo ngày
-          </Button>
-          <Button variant="outline">
-            <ArrowUpDown className="h-4 w-4 mr-2" />
-            Sắp xếp
-          </Button>
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-1/2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input placeholder="Tìm kiếm đơn đặt tour..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -218,6 +215,7 @@ const ManageBookings = () => {
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày đặt</th>
+                <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày khởi hành</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng tiền</th>
                 <th className="py-4 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
@@ -246,6 +244,7 @@ const ManageBookings = () => {
                       </td>
                       <td className="py-4 px-4 text-sm font-medium text-gray-900">{booking.tour?.name}</td>
                       <td className="py-4 px-4 text-sm text-gray-500">{formatDate(booking.bookingDate)}</td>
+                      <td className="py-4 px-4 text-sm text-gray-500">{formatDateOnly(booking.departureDate) || "N/A"}</td>
                       <td className="py-4 px-4 text-sm text-gray-500">{booking.numberOfPeople} người</td>
                       <td className="py-4 px-4 text-sm font-medium text-gray-900">{formatCurrency(booking.totalPrice)}</td>
                       <td className="py-4 px-4 text-sm text-gray-500">
@@ -341,7 +340,7 @@ const ManageBookings = () => {
                   <strong>Mô tả:</strong> {selectedBooking.tour?.description || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600">
-                  <strong>Ngày khởi hành:</strong> {formatDateOnly(selectedBooking.tour?.departureDate) || "N/A"}
+                  <strong>Ngày khởi hành:</strong> {formatDateOnly(selectedBooking.departureDate) || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600">
                   <strong>Ngày đặt:</strong> {formatDate(selectedBooking.bookingDate) || "N/A"}

@@ -116,7 +116,7 @@ const ManageReviews = () => {
           <Input placeholder="Tìm kiếm đánh giá..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
         </div>
 
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button variant="outline">
             <Filter className="h-4 w-4 mr-2" />
             Lọc sao
@@ -125,7 +125,7 @@ const ManageReviews = () => {
             <ArrowUpDown className="h-4 w-4 mr-2" />
             Sắp xếp
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <div className="space-y-4">

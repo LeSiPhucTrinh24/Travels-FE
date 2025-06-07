@@ -17,12 +17,19 @@ const formatCurrency = (value) => {
 };
 // Format date for display
 const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ""; // Check if date is valid
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "";
+  }
 };
 
 // Format date for input
@@ -45,11 +52,7 @@ const TourCard = ({ tour, onClick }) => (
       <div className="flex flex-col gap-1 mb-2 text-gray-500 text-sm">
         <div className="flex items-center">
           <MapPin className="h-4 w-4 mr-1" />
-          <span>Điểm đến: {tour.location}</span>
-        </div>
-        <div className="flex items-center">
-          <MapPin className="h-4 w-4 mr-1" />
-          <span>Khởi hành: {formatDate(tour.departureDate)}</span>
+          <span>{tour.location}</span>
         </div>
       </div>
 
@@ -128,7 +131,6 @@ const Home = () => {
         setDisplayedFeaturedTours(featured);
       } catch (error) {
         console.error("Error fetching featured tours:", error);
-        // Don't show error toast for unauthorized access
         if (error.response?.status !== 401) {
           toast.error("Không thể tải danh sách tour nổi bật.");
         }
@@ -158,6 +160,8 @@ const Home = () => {
     if (searchParams.date) {
       const selectedDate = new Date(searchParams.date);
       results = results.filter((tour) => {
+        // Nếu tour không có ngày khởi hành, vẫn hiển thị tour đó
+        if (!tour.departureDate) return true;
         const tourDate = new Date(tour.departureDate);
         return tourDate.toDateString() === selectedDate.toDateString();
       });

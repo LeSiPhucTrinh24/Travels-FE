@@ -69,20 +69,18 @@ const ManageUsers = () => {
         </Button>
       </div>
 
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input placeholder="Tìm kiếm người dùng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Lọc
-          </Button>
-          <Button variant="outline">
-            <ArrowUpDown className="h-4 w-4 mr-2" />
-            Sắp xếp
-          </Button>
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-1/2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input placeholder="Tìm kiếm người dùng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

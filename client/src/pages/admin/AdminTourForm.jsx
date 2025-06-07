@@ -37,7 +37,6 @@ const AdminTourForm = () => {
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [tourImages, setTourImages] = useState([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
 
@@ -123,7 +122,7 @@ const AdminTourForm = () => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : name === "price" ? value : value,
     }));
   };
 
@@ -175,7 +174,7 @@ const AdminTourForm = () => {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description);
-      formDataToSend.append("price", formData.price ? String(formData.price) : "");
+      formDataToSend.append("price", formData.price);
       formDataToSend.append("duration", formData.duration ? String(formData.duration) : "");
       formDataToSend.append("departureDate", formData.departureDate instanceof Date ? formatDate(formData.departureDate, "yyyy-MM-dd") : formData.departureDate);
       formDataToSend.append("departureLocation", formData.departureLocation);
@@ -273,33 +272,6 @@ const AdminTourForm = () => {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-gray-500" />
-                Ngày khởi hành
-              </label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1", !formData.departureDate && "text-gray-500")}>
-                    {" "}
-                    <CalendarIcon className="mr-2 h-4 w-4" /> {formData.departureDate ? formatDate(formData.departureDate, "dd/MM/yyyy") : <span>Chọn ngày</span>}{" "}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.departureDate}
-                    onSelect={(date) => {
-                      setFormData((prev) => ({ ...prev, departureDate: date }));
-                      setIsCalendarOpen(false);
-                    }}
-                    locale={vi}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-gray-500" />
